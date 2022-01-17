@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="1.1.1"></a>
+
+## 1.1.1 (2022-01-17)
+
+### Bug Fixes
+
+- openapi-typescript-code-generator version ([#1](https://github.com/Himenon/argocd-typescript-openapi/issues/1)) ([20b0d04](https://github.com/Himenon/argocd-typescript-openapi/commit/20b0d04))
+
 <a name="1.1.0"></a>
 
 # 1.1.0 (2022-01-17)
