@@ -1,34 +1,34 @@
 # @himenon/argocd-typescript-openapi
 
 ```bash
-yarn add -D @himenon/argocd-typescript-openapi
+pnpm add -D @himenon/argocd-typescript-openapi
 ```
 
 ## Usage
 
 ```ts
 import * as fs from "fs";
-import * as yaml from "js-yaml"; // yarn add js-yaml @types/js-yaml
+import * as yaml from "js-yaml"; // pnpm i -D js-yaml @types/js-yaml
 import type { Schemas } from "@himenon/argocd-typescript-openapi/v1.22.3";
 ```
 
 ## Build
 
 ```ts
-yarn run build
+pnpm run build
 ```
 
 ## Update Schemas
 
 ```bash
 # Fetch and Build
-yarn run build:all
+pnpm run build:all
 
 # Fetch schemas
-yarn run fetch:schemas
+pnpm run fetch:schemas
 
 # Generate source code
-yarn run generate:code
+pnpm run generate:code
 ```
 
 ## OpenAPI Source for ArgoCD
