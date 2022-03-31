@@ -1,7 +1,9 @@
 # @himenon/argocd-typescript-openapi
 
 ```bash
-pnpm add -D @himenon/argocd-typescript-openapi
+npm  i   @himenon/argocd-typescript-openapi
+pnpm i   @himenon/argocd-typescript-openapi
+yarn add @himenon/argocd-typescript-openapi
 ```
 
 ## Usage

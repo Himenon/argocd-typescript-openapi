@@ -91,10 +91,7 @@
     "yarn-deduplicate": "3.1.0"
   },
   "engines": {
-    "node": ">=16",
-    "npm": "forbidden, use pnpm",
-    "pnpm": ">=6",
-    "yarn": "forbidden, use pnpm"
+    "pnpm": ">=6"
   },
   "publishConfig": {
     "access": "public"
