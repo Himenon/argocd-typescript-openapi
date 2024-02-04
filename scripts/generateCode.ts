@@ -33,7 +33,7 @@ const task = async (filename: string, outputFilename: string): Promise<void> => 
   const code = codeGenerator.generateTypeDefinition([
     codeGenerator.getAdditionalTypeDefinitionCustomCodeGenerator(),
     {
-      generator: Templates.ApiClient.generator,
+      generator: Templates.ClassApiClient.generator,
       option: {
         additionalMethodComment: true,
       },

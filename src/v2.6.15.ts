@@ -42,7 +42,17 @@ export namespace Schemas {
     }
     export interface accountUpdatePasswordResponse {
     }
+    export interface applicationApplicationManifestQueryWithFiles {
+        appNamespace?: string;
+        checksum?: string;
+        name?: string;
+    }
+    export interface applicationApplicationManifestQueryWithFilesWrapper {
+        chunk?: Schemas.applicationFileChunk;
+        query?: Schemas.applicationApplicationManifestQueryWithFiles;
+    }
     export interface applicationApplicationPatchRequest {
+        appNamespace?: string;
         name?: string;
         patch?: string;
         patchType?: string;
@@ -53,12 +63,14 @@ export namespace Schemas {
     export interface applicationApplicationResponse {
     }
     export interface applicationApplicationRollbackRequest {
+        appNamespace?: string;
         dryRun?: boolean;
         id?: string;
         name?: string;
         prune?: boolean;
     }
     export interface applicationApplicationSyncRequest {
+        appNamespace?: string;
         dryRun?: boolean;
         infos?: Schemas.v1alpha1Info[];
         manifests?: string[];
@@ -81,6 +93,18 @@ export namespace Schemas {
         assignedWindows?: Schemas.applicationApplicationSyncWindow[];
         canSync?: boolean;
     }
+    export interface applicationFileChunk {
+        chunk?: Blob;
+    }
+    export interface applicationLinkInfo {
+        description?: string;
+        iconClass?: string;
+        title?: string;
+        url?: string;
+    }
+    export interface applicationLinksResponse {
+        items?: Schemas.applicationLinkInfo[];
+    }
     export interface applicationLogEntry {
         content?: string;
         last?: boolean;
@@ -99,10 +123,20 @@ export namespace Schemas {
     export interface applicationSyncOptions {
         items?: string[];
     }
+    export interface applicationsetApplicationSetResponse {
+        applicationset?: Schemas.v1alpha1ApplicationSet;
+        project?: string;
+    }
     export interface applicationv1alpha1EnvEntry {
         /** Name is the name of the variable, usually expressed in uppercase */
         name?: string;
         /** Value is the value of the variable */
+        value?: string;
+    }
+    export interface clusterClusterID {
+        /** type is the type of the specified cluster identifier ( "server" - default, "name" ) */
+        type?: string;
+        /** value holds the cluster server URL or cluster name */
         value?: string;
     }
     export interface clusterClusterResponse {
@@ -119,6 +153,10 @@ export namespace Schemas {
         trackingID?: string;
     }
     export interface clusterHelp {
+        /** the URLs for downloading argocd binaries */
+        binaryUrls?: {
+            [key: string]: string;
+        };
         /** the text for getting chat help, defaults to "Chat now!" */
         chatText?: string;
         /** the URL for getting chat help, this will typically be your Slack channel for support */
@@ -140,8 +178,11 @@ export namespace Schemas {
     }
     export interface clusterSettings {
         appLabelKey?: string;
+        appsInAnyNamespaceEnabled?: boolean;
         configManagementPlugins?: Schemas.v1alpha1ConfigManagementPlugin[];
+        controllerNamespace?: string;
         dexConfig?: Schemas.clusterDexConfig;
+        execEnabled?: boolean;
         googleAnalytics?: Schemas.clusterGoogleAnalyticsConfig;
         help?: Schemas.clusterHelp;
         kustomizeOptions?: Schemas.v1alpha1KustomizeOptions;
@@ -153,11 +194,18 @@ export namespace Schemas {
             [key: string]: Schemas.v1alpha1ResourceOverride;
         };
         statusBadgeEnabled?: boolean;
+        statusBadgeRootUrl?: string;
+        trackingMethod?: string;
         uiBannerContent?: string;
+        uiBannerPermanent?: boolean;
+        uiBannerPosition?: string;
         uiBannerURL?: string;
         uiCssURL?: string;
         url?: string;
         userLoginsDisabled?: boolean;
+    }
+    export interface clusterSettingsPluginsResponse {
+        plugins?: Schemas.clusterPlugin[];
     }
     export interface gpgkeyGnuPGPublicKeyCreateResponse {
         created?: Schemas.v1alpha1GnuPGPublicKeyList;
@@ -166,10 +214,44 @@ export namespace Schemas {
     }
     export interface gpgkeyGnuPGPublicKeyResponse {
     }
+    /**
+     * +protobuf=true
+     * +protobuf.options.(gogoproto.goproto_stringer)=false
+     * +k8s:openapi-gen=true
+     */
+    export interface intstrIntOrString {
+        intVal?: number;
+        strVal?: string;
+        type?: string;
+    }
+    export interface notificationService {
+        name?: string;
+    }
+    export interface notificationServiceList {
+        items?: Schemas.notificationService[];
+    }
+    export interface notificationTemplate {
+        name?: string;
+    }
+    export interface notificationTemplateList {
+        items?: Schemas.notificationTemplate[];
+    }
+    export interface notificationTrigger {
+        name?: string;
+    }
+    export interface notificationTriggerList {
+        items?: Schemas.notificationTrigger[];
+    }
     export interface oidcClaim {
         essential?: boolean;
         value?: string;
         values?: string[];
+    }
+    export interface projectDetailedProjectsResponse {
+        clusters?: Schemas.v1alpha1Cluster[];
+        globalProjects?: Schemas.v1alpha1AppProject[];
+        project?: Schemas.v1alpha1AppProject;
+        repositories?: Schemas.v1alpha1Repository[];
     }
     export interface projectEmptyResponse {
     }
@@ -229,26 +311,6 @@ export namespace Schemas {
     export interface repositoryHelmChartsResponse {
         items?: Schemas.repositoryHelmChart[];
     }
-    export interface repositoryKsonnetAppSpec {
-        environments?: {
-            [key: string]: Schemas.repositoryKsonnetEnvironment;
-        };
-        name?: string;
-        parameters?: Schemas.v1alpha1KsonnetParameter[];
-    }
-    export interface repositoryKsonnetEnvironment {
-        destination?: Schemas.repositoryKsonnetEnvironmentDestination;
-        /** KubernetesVersion is the kubernetes version the targeted cluster is running on. */
-        k8sVersion?: string;
-        /** Name is the user defined name of an environment */
-        name?: string;
-    }
-    export interface repositoryKsonnetEnvironmentDestination {
-        /** Namespace is the namespace of the Kubernetes server that targets should be deployed to */
-        namespace?: string;
-        /** Server is the Kubernetes server that the cluster is running on. */
-        server?: string;
-    }
     export interface repositoryKustomizeAppSpec {
         /** images is a list of available images. */
         images?: string[];
@@ -263,19 +325,52 @@ export namespace Schemas {
         /** Raw response of git verify-commit operation (always the empty string for Helm) */
         verifyResult?: string;
     }
+    export interface repositoryParameterAnnouncement {
+        /** array is the default value of the parameter if the parameter is an array. */
+        array?: string[];
+        /**
+         * collectionType is the type of value this parameter holds - either a single value (a string) or a collection
+         * (array or map). If collectionType is set, only the field with that type will be used. If collectionType is not
+         * set, `string` is the default. If collectionType is set to an invalid value, a validation error is thrown.
+         */
+        collectionType?: string;
+        /**
+         * itemType determines the primitive data type represented by the parameter. Parameters are always encoded as
+         * strings, but this field lets them be interpreted as other primitive types.
+         */
+        itemType?: string;
+        /** map is the default value of the parameter if the parameter is a map. */
+        map?: {
+            [key: string]: string;
+        };
+        /** name is the name identifying a parameter. */
+        name?: string;
+        /** required defines if this given parameter is mandatory. */
+        required?: boolean;
+        /** string is the default value of the parameter if the parameter is a string. */
+        string?: string;
+        /** title is a human-readable text of the parameter name. */
+        title?: string;
+        /** tooltip is a human-readable description of the parameter. */
+        tooltip?: string;
+    }
+    export interface repositoryPluginAppSpec {
+        parametersAnnouncement?: Schemas.repositoryParameterAnnouncement[];
+    }
     export interface repositoryRefs {
         branches?: string[];
         tags?: string[];
     }
     export interface repositoryRepoAppDetailsQuery {
         appName?: string;
+        appProject?: string;
         source?: Schemas.v1alpha1ApplicationSource;
     }
     export interface repositoryRepoAppDetailsResponse {
         directory?: Schemas.repositoryDirectoryAppSpec;
         helm?: Schemas.repositoryHelmAppSpec;
-        ksonnet?: Schemas.repositoryKsonnetAppSpec;
         kustomize?: Schemas.repositoryKustomizeAppSpec;
+        plugin?: Schemas.repositoryPluginAppSpec;
         type?: string;
     }
     export interface repositoryRepoAppsResponse {
@@ -420,6 +515,54 @@ export namespace Schemas {
         kind?: string;
     }
     /**
+     * JSON represents any valid JSON value.
+     * These types are supported: bool, int64, float64, string, []interface{}, map[string]interface{} and nil.
+     */
+    export interface v1JSON {
+        raw?: Blob;
+    }
+    export interface v1LabelSelector {
+        /**
+         * matchExpressions is a list of label selector requirements. The requirements are ANDed.
+         * +optional
+         */
+        matchExpressions?: Schemas.v1LabelSelectorRequirement[];
+        /**
+         * matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+         * map is equivalent to an element of matchExpressions, whose key field is "key", the
+         * operator is "In", and the values array contains only "value". The requirements are ANDed.
+         * +optional
+         */
+        matchLabels?: {
+            [key: string]: string;
+        };
+    }
+    /**
+     * A label selector requirement is a selector that contains values, a key, and an operator that
+     * relates the key and values.
+     */
+    export interface v1LabelSelectorRequirement {
+        /**
+         * key is the label key that the selector applies to.
+         * +patchMergeKey=key
+         * +patchStrategy=merge
+         */
+        key?: string;
+        /**
+         * operator represents a key's relationship to a set of values.
+         * Valid operators are In, NotIn, Exists and DoesNotExist.
+         */
+        operator?: string;
+        /**
+         * values is an array of string values. If the operator is In or NotIn,
+         * the values array must be non-empty. If the operator is Exists or DoesNotExist,
+         * the values array must be empty. This array is replaced during a strategic
+         * merge patch.
+         * +optional
+         */
+        values?: string[];
+    }
+    /**
      * ListMeta describes metadata that synthetic resources must have, including lists and
      * various status objects. A resource may have only one of {ObjectMeta, ListMeta}.
      */
@@ -458,13 +601,7 @@ export namespace Schemas {
          */
         resourceVersion?: string;
         /**
-         * selfLink is a URL representing this object.
-         * Populated by the system.
-         * Read-only.
-         *
-         * DEPRECATED
-         * Kubernetes will stop propagating this field in 1.20 release and the field is planned
-         * to be removed in 1.21 release.
+         * Deprecated: selfLink is a legacy read-only field that is no longer populated by the system.
          * +optional
          */
         selfLink?: string;
@@ -519,6 +656,16 @@ export namespace Schemas {
          * The only valid values for this field are 'Apply' and 'Update'.
          */
         operation?: string;
+        /**
+         * Subresource is the name of the subresource used to update that object, or
+         * empty string if the object was updated through the main resource. The
+         * value of this field is used to distinguish between managers, even if they
+         * share the same name. For example, a status update will be distinct from a
+         * regular update using the same manager name.
+         * Note that the APIVersion field is not related to the Subresource field and
+         * it always corresponds to the version of the main resource.
+         */
+        subresource?: string;
         time?: Schemas.v1Time;
     }
     /**
@@ -549,7 +696,7 @@ export namespace Schemas {
         architecture?: string;
         /** Boot ID reported by the node. */
         bootID?: string;
-        /** ContainerRuntime Version reported by the node through runtime remote API (e.g. docker://1.5.0). */
+        /** ContainerRuntime Version reported by the node through runtime remote API (e.g. containerd://1.4.2). */
         containerRuntimeVersion?: string;
         /** Kernel Version reported by the node from 'uname -r' (e.g. 3.16.0-0.bpo.4-amd64). */
         kernelVersion?: string;
@@ -590,9 +737,12 @@ export namespace Schemas {
             [key: string]: string;
         };
         /**
-         * The name of the cluster which the object belongs to.
-         * This is used to distinguish resources with same name and namespace in different clusters.
-         * This field is not set anywhere right now and apiserver is going to ignore it if set in create or update request.
+         * Deprecated: ClusterName is a legacy field that was always cleared by
+         * the system and never used; it will be removed completely in 1.25.
+         *
+         * The name in the go struct is changed to help clients detect
+         * accidental use.
+         *
          * +optional
          */
         clusterName?: string;
@@ -633,10 +783,7 @@ export namespace Schemas {
          * and may be truncated by the length of the suffix required to make the value
          * unique on the server.
          *
-         * If this field is specified and the generated name exists, the server will
-         * NOT return a 409 - instead, it will either return 201 Created or 500 with Reason
-         * ServerTimeout indicating a unique name could not be found in the time allotted, and the client
-         * should retry (optionally after the time indicated in the Retry-After header).
+         * If this field is specified and the generated name exists, the server will return a 409.
          *
          * Applied only if Name is not specified.
          * More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
@@ -718,13 +865,7 @@ export namespace Schemas {
          */
         resourceVersion?: string;
         /**
-         * SelfLink is a URL representing this object.
-         * Populated by the system.
-         * Read-only.
-         *
-         * DEPRECATED
-         * Kubernetes will stop propagating this field in 1.20 release and the field is planned
-         * to be removed in 1.21 release.
+         * Deprecated: selfLink is a legacy read-only field that is no longer populated by the system.
          * +optional
          */
         selfLink?: string;
@@ -789,11 +930,6 @@ export namespace Schemas {
          */
         uid?: string;
     }
-    /**
-     * OwnerReference contains enough information to let you identify an owning
-     * object. An owning object must be in the same namespace as the dependent, or
-     * be cluster-scoped, so there is no namespace field.
-     */
     export interface v1OwnerReference {
         /** API version of the referent. */
         apiVersion?: string;
@@ -801,6 +937,8 @@ export namespace Schemas {
          * If true, AND if the owner has the "foregroundDeletion" finalizer, then
          * the owner cannot be deleted from the key-value store until this
          * reference is removed.
+         * See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion
+         * for how the garbage collector interacts with this field and enforces the foreground deletion.
          * Defaults to false.
          * To set this field, a user needs "delete" permission of the owner,
          * otherwise 422 (Unprocessable Entity) will be returned.
@@ -905,10 +1043,14 @@ export namespace Schemas {
         /** NamespaceResourceWhitelist contains list of whitelisted namespace level resources */
         namespaceResourceWhitelist?: Schemas.v1GroupKind[];
         orphanedResources?: Schemas.v1alpha1OrphanedResourcesMonitorSettings;
+        /** PermitOnlyProjectScopedClusters determines whether destinations can only reference clusters which are project-scoped */
+        permitOnlyProjectScopedClusters?: boolean;
         /** Roles are user defined RBAC roles associated with this project */
         roles?: Schemas.v1alpha1ProjectRole[];
         /** SignatureKeys contains a list of PGP key IDs that commits in Git must be signed with in order to be allowed for sync */
         signatureKeys?: Schemas.v1alpha1SignatureKey[];
+        /** SourceNamespaces defines the namespaces application resources are allowed to be created in */
+        sourceNamespaces?: string[];
         /** SourceRepos contains list of repository URLs which can be used for deployment */
         sourceRepos?: string[];
         /** SyncWindows controls when syncs can be run for apps in this project */
@@ -948,16 +1090,131 @@ export namespace Schemas {
         items?: Schemas.v1alpha1Application[];
         metadata?: Schemas.v1ListMeta;
     }
+    export interface v1alpha1ApplicationMatchExpression {
+        key?: string;
+        operator?: string;
+        values?: string[];
+    }
+    export interface v1alpha1ApplicationSet {
+        metadata?: Schemas.v1ObjectMeta;
+        spec?: Schemas.v1alpha1ApplicationSetSpec;
+        status?: Schemas.v1alpha1ApplicationSetStatus;
+    }
+    export interface v1alpha1ApplicationSetApplicationStatus {
+        /** Application contains the name of the Application resource */
+        application?: string;
+        lastTransitionTime?: Schemas.v1Time;
+        /** Message contains human-readable message indicating details about the status */
+        message?: string;
+        /** Status contains the AppSet's perceived status of the managed Application resource: (Waiting, Pending, Progressing, Healthy) */
+        status?: string;
+        /** Step tracks which step this Application should be updated in */
+        step?: string;
+    }
+    export interface v1alpha1ApplicationSetCondition {
+        lastTransitionTime?: Schemas.v1Time;
+        /** Message contains human-readable message indicating details about condition */
+        message?: string;
+        /** Single word camelcase representing the reason for the status eg ErrorOccurred */
+        reason?: string;
+        /** True/False/Unknown */
+        status?: string;
+        /** Type is an applicationset condition type */
+        type?: string;
+    }
+    /** ApplicationSetGenerator represents a generator at the top level of an ApplicationSet. */
+    export interface v1alpha1ApplicationSetGenerator {
+        clusterDecisionResource?: Schemas.v1alpha1DuckTypeGenerator;
+        clusters?: Schemas.v1alpha1ClusterGenerator;
+        git?: Schemas.v1alpha1GitGenerator;
+        list?: Schemas.v1alpha1ListGenerator;
+        matrix?: Schemas.v1alpha1MatrixGenerator;
+        merge?: Schemas.v1alpha1MergeGenerator;
+        pullRequest?: Schemas.v1alpha1PullRequestGenerator;
+        scmProvider?: Schemas.v1alpha1SCMProviderGenerator;
+        selector?: Schemas.v1LabelSelector;
+    }
+    export interface v1alpha1ApplicationSetList {
+        items?: Schemas.v1alpha1ApplicationSet[];
+        metadata?: Schemas.v1ListMeta;
+    }
+    /**
+     * ApplicationSetNestedGenerator represents a generator nested within a combination-type generator (MatrixGenerator or
+     * MergeGenerator).
+     */
+    export interface v1alpha1ApplicationSetNestedGenerator {
+        clusterDecisionResource?: Schemas.v1alpha1DuckTypeGenerator;
+        clusters?: Schemas.v1alpha1ClusterGenerator;
+        git?: Schemas.v1alpha1GitGenerator;
+        list?: Schemas.v1alpha1ListGenerator;
+        matrix?: Schemas.v1JSON;
+        merge?: Schemas.v1JSON;
+        pullRequest?: Schemas.v1alpha1PullRequestGenerator;
+        scmProvider?: Schemas.v1alpha1SCMProviderGenerator;
+        selector?: Schemas.v1LabelSelector;
+    }
+    export interface v1alpha1ApplicationSetRolloutStep {
+        matchExpressions?: Schemas.v1alpha1ApplicationMatchExpression[];
+        maxUpdate?: Schemas.intstrIntOrString;
+    }
+    export interface v1alpha1ApplicationSetRolloutStrategy {
+        steps?: Schemas.v1alpha1ApplicationSetRolloutStep[];
+    }
+    /** ApplicationSetSpec represents a class of application set state. */
+    export interface v1alpha1ApplicationSetSpec {
+        generators?: Schemas.v1alpha1ApplicationSetGenerator[];
+        goTemplate?: boolean;
+        strategy?: Schemas.v1alpha1ApplicationSetStrategy;
+        syncPolicy?: Schemas.v1alpha1ApplicationSetSyncPolicy;
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+    }
+    export interface v1alpha1ApplicationSetStatus {
+        applicationStatus?: Schemas.v1alpha1ApplicationSetApplicationStatus[];
+        /**
+         * INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+         * Important: Run "make" to regenerate code after modifying this file
+         */
+        conditions?: Schemas.v1alpha1ApplicationSetCondition[];
+    }
+    /** ApplicationSetStrategy configures how generated Applications are updated in sequence. */
+    export interface v1alpha1ApplicationSetStrategy {
+        rollingSync?: Schemas.v1alpha1ApplicationSetRolloutStrategy;
+        type?: string;
+    }
+    /**
+     * ApplicationSetSyncPolicy configures how generated Applications will relate to their
+     * ApplicationSet.
+     */
+    export interface v1alpha1ApplicationSetSyncPolicy {
+        /** PreserveResourcesOnDeletion will preserve resources on deletion. If PreserveResourcesOnDeletion is set to true, these Applications will not be deleted. */
+        preserveResourcesOnDeletion?: boolean;
+    }
+    export interface v1alpha1ApplicationSetTemplate {
+        metadata?: Schemas.v1alpha1ApplicationSetTemplateMeta;
+        spec?: Schemas.v1alpha1ApplicationSpec;
+    }
+    export interface v1alpha1ApplicationSetTemplateMeta {
+        annotations?: {
+            [key: string]: string;
+        };
+        finalizers?: string[];
+        labels?: {
+            [key: string]: string;
+        };
+        name?: string;
+        namespace?: string;
+    }
     export interface v1alpha1ApplicationSource {
         /** Chart is a Helm chart name, and must be specified for applications sourced from a Helm repo. */
         chart?: string;
         directory?: Schemas.v1alpha1ApplicationSourceDirectory;
         helm?: Schemas.v1alpha1ApplicationSourceHelm;
-        ksonnet?: Schemas.v1alpha1ApplicationSourceKsonnet;
         kustomize?: Schemas.v1alpha1ApplicationSourceKustomize;
         /** Path is a directory path within the Git repository, and is only valid for applications sourced from Git. */
         path?: string;
         plugin?: Schemas.v1alpha1ApplicationSourcePlugin;
+        /** Ref is reference to another source within sources field. This field will not be used if used with a `source` tag. */
+        ref?: string;
         /** RepoURL is the URL to the repository (Git or Helm) that contains the application manifests */
         repoURL?: string;
         /**
@@ -979,15 +1236,21 @@ export namespace Schemas {
     export interface v1alpha1ApplicationSourceHelm {
         /** FileParameters are file parameters to the helm template */
         fileParameters?: Schemas.v1alpha1HelmFileParameter[];
+        /** IgnoreMissingValueFiles prevents helm template from failing when valueFiles do not exist locally by not appending them to helm template --values */
+        ignoreMissingValueFiles?: boolean;
         /** Parameters is a list of Helm parameters which are passed to the helm template command upon manifest generation */
         parameters?: Schemas.v1alpha1HelmParameter[];
+        /** PassCredentials pass credentials to all domains (Helm's --pass-credentials) */
+        passCredentials?: boolean;
         /** ReleaseName is the Helm release name to use. If omitted it will use the application name */
         releaseName?: string;
+        /** SkipCrds skips custom resource definition installation step (Helm's --skip-crds) */
+        skipCrds?: boolean;
         /** ValuesFiles is a list of Helm value files to use when generating a template */
         valueFiles?: string[];
         /** Values specifies Helm values to be passed to helm template, typically defined as a block */
         values?: string;
-        /** Version is the Helm version to use for templating (either "2" or "3") */
+        /** Version is the Helm version to use for templating ("3") */
         version?: string;
     }
     export interface v1alpha1ApplicationSourceJsonnet {
@@ -997,12 +1260,6 @@ export namespace Schemas {
         libs?: string[];
         /** TLAS is a list of Jsonnet Top-level Arguments */
         tlas?: Schemas.v1alpha1JsonnetVar[];
-    }
-    export interface v1alpha1ApplicationSourceKsonnet {
-        /** Environment is a ksonnet application environment name */
-        environment?: string;
-        /** Parameters are a list of ksonnet component parameter override values */
-        parameters?: Schemas.v1alpha1KsonnetParameter[];
     }
     export interface v1alpha1ApplicationSourceKustomize {
         /** CommonAnnotations is a list of additional annotations to add to rendered manifests */
@@ -1029,6 +1286,19 @@ export namespace Schemas {
     export interface v1alpha1ApplicationSourcePlugin {
         env?: Schemas.applicationv1alpha1EnvEntry[];
         name?: string;
+        parameters?: Schemas.v1alpha1ApplicationSourcePluginParameter[];
+    }
+    export interface v1alpha1ApplicationSourcePluginParameter {
+        /** Array is the value of an array type parameter. */
+        array?: string[];
+        /** Map is the value of a map type parameter. */
+        map?: {
+            [key: string]: string;
+        };
+        /** Name is the name identifying a parameter. */
+        name?: string;
+        /** String_ is the value of a string type parameter. */
+        string?: string;
     }
     /** ApplicationSpec represents desired application state. Contains link to repository with application definition and additional parameters link definition revision. */
     export interface v1alpha1ApplicationSpec {
@@ -1051,6 +1321,8 @@ export namespace Schemas {
          */
         revisionHistoryLimit?: string;
         source?: Schemas.v1alpha1ApplicationSource;
+        /** Sources is a reference to the location of the application's manifests or chart */
+        sources?: Schemas.v1alpha1ApplicationSource[];
         syncPolicy?: Schemas.v1alpha1SyncPolicy;
     }
     export interface v1alpha1ApplicationStatus {
@@ -1062,10 +1334,14 @@ export namespace Schemas {
         observedAt?: Schemas.v1Time;
         operationState?: Schemas.v1alpha1OperationState;
         reconciledAt?: Schemas.v1Time;
+        /** ResourceHealthSource indicates where the resource health status is stored: inline if not set or appTree */
+        resourceHealthSource?: string;
         /** Resources is a list of Kubernetes resources managed by this application */
         resources?: Schemas.v1alpha1ResourceStatus[];
         /** SourceType specifies the type of this application */
         sourceType?: string;
+        /** SourceTypes specifies the type of the sources included in the application */
+        sourceTypes?: string[];
         summary?: Schemas.v1alpha1ApplicationSummary;
         sync?: Schemas.v1alpha1SyncStatus;
     }
@@ -1096,16 +1372,32 @@ export namespace Schemas {
         /** MaxDuration is the maximum amount of time allowed for the backoff strategy */
         maxDuration?: string;
     }
+    /** BasicAuthBitbucketServer defines the username/(password or personal access token) for Basic auth. */
+    export interface v1alpha1BasicAuthBitbucketServer {
+        passwordRef?: Schemas.v1alpha1SecretRef;
+        /** Username for Basic auth */
+        username?: string;
+    }
     export interface v1alpha1Cluster {
+        /** Annotations for cluster secret metadata */
+        annotations?: {
+            [key: string]: string;
+        };
         /** Indicates if cluster level resources should be managed. This setting is used only if cluster is connected in a namespaced mode. */
         clusterResources?: boolean;
         config?: Schemas.v1alpha1ClusterConfig;
         connectionState?: Schemas.v1alpha1ConnectionState;
         info?: Schemas.v1alpha1ClusterInfo;
+        /** Labels for cluster secret metadata */
+        labels?: {
+            [key: string]: string;
+        };
         /** Name of the cluster. If omitted, will use the server address */
         name?: string;
         /** Holds list of namespaces which are accessible in that cluster. Cluster level resources will be ignored if namespace list is not empty. */
         namespaces?: string[];
+        /** Reference between project and cluster that allow you automatically to be added as item inside Destinations project entity */
+        project?: string;
         refreshRequestedAt?: Schemas.v1Time;
         /** Server is the API server URL of the Kubernetes cluster */
         server?: string;
@@ -1142,6 +1434,15 @@ export namespace Schemas {
         /** Server requires Basic authentication */
         username?: string;
     }
+    /** ClusterGenerator defines a generator to match against clusters registered with ArgoCD. */
+    export interface v1alpha1ClusterGenerator {
+        selector?: Schemas.v1LabelSelector;
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+        /** Values contains key/value pairs which are passed directly as parameters to the template */
+        values?: {
+            [key: string]: string;
+        };
+    }
     export interface v1alpha1ClusterInfo {
         /** APIVersions contains list of API versions supported by the cluster */
         apiVersions?: string[];
@@ -1164,10 +1465,13 @@ export namespace Schemas {
     export interface v1alpha1ComparedTo {
         destination?: Schemas.v1alpha1ApplicationDestination;
         source?: Schemas.v1alpha1ApplicationSource;
+        /** Sources is a reference to the application's multiple sources used for comparison */
+        sources?: Schemas.v1alpha1ApplicationSource[];
     }
     export interface v1alpha1ConfigManagementPlugin {
         generate?: Schemas.v1alpha1Command;
         init?: Schemas.v1alpha1Command;
+        lockRepo?: boolean;
         name?: string;
     }
     export interface v1alpha1ConnectionState {
@@ -1176,6 +1480,24 @@ export namespace Schemas {
         message?: string;
         /** Status contains the current status indicator for the connection */
         status?: string;
+    }
+    /** DuckType defines a generator to match against clusters registered with ArgoCD. */
+    export interface v1alpha1DuckTypeGenerator {
+        /**
+         * ConfigMapRef is a ConfigMap with the duck type definitions needed to retrieve the data
+         *              this includes apiVersion(group/version), kind, matchKey and validation settings
+         * Name is the resource name of the kind, group and version, defined in the ConfigMapRef
+         * RequeueAfterSeconds is how long before the duckType will be rechecked for a change
+         */
+        configMapRef?: string;
+        labelSelector?: Schemas.v1LabelSelector;
+        name?: string;
+        requeueAfterSeconds?: string;
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+        /** Values contains key/value pairs which are passed directly as parameters to the template */
+        values?: {
+            [key: string]: string;
+        };
     }
     export interface v1alpha1ExecProviderConfig {
         /** Preferred input version of the ExecInfo */
@@ -1190,6 +1512,22 @@ export namespace Schemas {
         };
         /** This text is shown to the user when the executable doesn't seem to be present */
         installHint?: string;
+    }
+    export interface v1alpha1GitDirectoryGeneratorItem {
+        exclude?: boolean;
+        path?: string;
+    }
+    export interface v1alpha1GitFileGeneratorItem {
+        path?: string;
+    }
+    export interface v1alpha1GitGenerator {
+        directories?: Schemas.v1alpha1GitDirectoryGeneratorItem[];
+        files?: Schemas.v1alpha1GitFileGeneratorItem[];
+        pathParamPrefix?: string;
+        repoURL?: string;
+        requeueAfterSeconds?: string;
+        revision?: string;
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
     }
     export interface v1alpha1GnuPGPublicKey {
         /** Fingerprint is the fingerprint of the key */
@@ -1267,16 +1605,48 @@ export namespace Schemas {
         field?: string;
         type?: string;
     }
-    export interface v1alpha1KsonnetParameter {
-        component?: string;
-        name?: string;
-        value?: string;
-    }
     export interface v1alpha1KustomizeOptions {
         /** BinaryPath holds optional path to kustomize binary */
         binaryPath?: string;
         /** BuildOptions is a string of build parameters to use when calling `kustomize build` */
         buildOptions?: string;
+    }
+    export interface v1alpha1ListGenerator {
+        elements?: Schemas.v1JSON[];
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+    }
+    export interface v1alpha1ManagedNamespaceMetadata {
+        annotations?: {
+            [key: string]: string;
+        };
+        labels?: {
+            [key: string]: string;
+        };
+    }
+    /**
+     * MatrixGenerator generates the cartesian product of two sets of parameters. The parameters are defined by two nested
+     * generators.
+     */
+    export interface v1alpha1MatrixGenerator {
+        generators?: Schemas.v1alpha1ApplicationSetNestedGenerator[];
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+    }
+    /**
+     * MergeGenerator merges the output of two or more generators. Where the values for all specified merge keys are equal
+     * between two sets of generated parameters, the parameter sets will be merged with the parameters from the latter
+     * generator taking precedence. Parameter sets with merge keys not present in the base generator's params will be
+     * ignored.
+     * For example, if the first generator produced [{a: '1', b: '2'}, {c: '1', d: '1'}] and the second generator produced
+     * [{'a': 'override'}], the united parameters for merge keys = ['a'] would be
+     * [{a: 'override', b: '1'}, {c: '1', d: '1'}].
+     *
+     * MergeGenerator supports template overriding. If a MergeGenerator is one of multiple top-level generators, its
+     * template will be merged with the top-level generator before the parameters are applied.
+     */
+    export interface v1alpha1MergeGenerator {
+        generators?: Schemas.v1alpha1ApplicationSetNestedGenerator[];
+        mergeKeys?: string[];
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
     }
     export interface v1alpha1Operation {
         /** Info is a list of informational items for this operation */
@@ -1315,8 +1685,15 @@ export namespace Schemas {
         warn?: boolean;
     }
     export interface v1alpha1OverrideIgnoreDiff {
+        /** JSONPointers is a JSON path list following the format defined in RFC4627 (https://datatracker.ietf.org/doc/html/rfc6902#section-3) */
         jSONPointers?: string[];
+        /** JQPathExpressions is a JQ path list that will be evaludated during the diff process */
         jqPathExpressions?: string[];
+        /**
+         * ManagedFieldsManagers is a list of trusted managers. Fields mutated by those managers will take precedence over the
+         * desired state defined in the SCM and won't be displayed in diffs
+         */
+        managedFieldsManagers?: string[];
     }
     export interface v1alpha1ProjectRole {
         /** Description is a description of the role */
@@ -1330,9 +1707,81 @@ export namespace Schemas {
         /** Policies Stores a list of casbin formatted strings that define access policies for the role in the project */
         policies?: string[];
     }
+    /** PullRequestGenerator defines a generator that scrapes a PullRequest API to find candidate pull requests. */
+    export interface v1alpha1PullRequestGenerator {
+        bitbucketServer?: Schemas.v1alpha1PullRequestGeneratorBitbucketServer;
+        /** Filters for which pull requests should be considered. */
+        filters?: Schemas.v1alpha1PullRequestGeneratorFilter[];
+        gitea?: Schemas.v1alpha1PullRequestGeneratorGitea;
+        github?: Schemas.v1alpha1PullRequestGeneratorGithub;
+        gitlab?: Schemas.v1alpha1PullRequestGeneratorGitLab;
+        /** Standard parameters. */
+        requeueAfterSeconds?: string;
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+    }
+    /** PullRequestGenerator defines connection info specific to BitbucketServer. */
+    export interface v1alpha1PullRequestGeneratorBitbucketServer {
+        /** The Bitbucket REST API URL to talk to e.g. https://bitbucket.org/rest Required. */
+        api?: string;
+        basicAuth?: Schemas.v1alpha1BasicAuthBitbucketServer;
+        /** Project to scan. Required. */
+        project?: string;
+        /** Repo name to scan. Required. */
+        repo?: string;
+    }
+    /**
+     * PullRequestGeneratorFilter is a single pull request filter.
+     * If multiple filter types are set on a single struct, they will be AND'd together. All filters must
+     * pass for a pull request to be included.
+     */
+    export interface v1alpha1PullRequestGeneratorFilter {
+        branchMatch?: string;
+    }
+    /** PullRequestGeneratorGitLab defines connection info specific to GitLab. */
+    export interface v1alpha1PullRequestGeneratorGitLab {
+        /** The GitLab API URL to talk to. If blank, uses https://gitlab.com/. */
+        api?: string;
+        /** Labels is used to filter the MRs that you want to target */
+        labels?: string[];
+        /** GitLab project to scan. Required. */
+        project?: string;
+        /** PullRequestState is an additional MRs filter to get only those with a certain state. Default: "" (all states) */
+        pullRequestState?: string;
+        tokenRef?: Schemas.v1alpha1SecretRef;
+    }
+    /** PullRequestGenerator defines connection info specific to Gitea. */
+    export interface v1alpha1PullRequestGeneratorGitea {
+        /** The Gitea API URL to talk to. Required */
+        api?: string;
+        /** Allow insecure tls, for self-signed certificates; default: false. */
+        insecure?: boolean;
+        /** Gitea org or user to scan. Required. */
+        owner?: string;
+        /** Gitea repo name to scan. Required. */
+        repo?: string;
+        tokenRef?: Schemas.v1alpha1SecretRef;
+    }
+    /** PullRequestGenerator defines connection info specific to GitHub. */
+    export interface v1alpha1PullRequestGeneratorGithub {
+        /** The GitHub API URL to talk to. If blank, use https://api.github.com/. */
+        api?: string;
+        /** AppSecretName is a reference to a GitHub App repo-creds secret with permission to access pull requests. */
+        appSecretName?: string;
+        /** Labels is used to filter the PRs that you want to target */
+        labels?: string[];
+        /** GitHub org or user to scan. Required. */
+        owner?: string;
+        /** GitHub repo name to scan. Required. */
+        repo?: string;
+        tokenRef?: Schemas.v1alpha1SecretRef;
+    }
     export interface v1alpha1RepoCreds {
         /** EnableOCI specifies whether helm-oci support should be enabled for this repo */
         enableOCI?: boolean;
+        /** ForceHttpBasicAuth specifies whether Argo CD should attempt to force basic auth for HTTP connections */
+        forceHttpBasicAuth?: boolean;
+        /** GCPServiceAccountKey specifies the service account key in JSON format to be used for getting credentials to Google Cloud Source repos */
+        gcpServiceAccountKey?: string;
         /** GithubAppEnterpriseBaseURL specifies the GitHub API URL for GitHub app authentication. If empty will default to https://api.github.com */
         githubAppEnterpriseBaseUrl?: string;
         /** GithubAppId specifies the Github App ID of the app used to access the repo for GitHub app authentication */
@@ -1343,6 +1792,8 @@ export namespace Schemas {
         githubAppPrivateKey?: string;
         /** Password for authenticating at the repo server */
         password?: string;
+        /** Proxy specifies the HTTP/HTTPS proxy used to access repos at the repo server */
+        proxy?: string;
         /** SSHPrivateKey contains the private key data for authenticating at the repo server using SSH (only Git repos) */
         sshPrivateKey?: string;
         /** TLSClientCertData specifies the TLS client cert data for authenticating at the repo server */
@@ -1367,6 +1818,10 @@ export namespace Schemas {
         enableLfs?: boolean;
         /** EnableOCI specifies whether helm-oci support should be enabled for this repo */
         enableOCI?: boolean;
+        /** ForceHttpBasicAuth specifies whether Argo CD should attempt to force basic auth for HTTP connections */
+        forceHttpBasicAuth?: boolean;
+        /** GCPServiceAccountKey specifies the service account key in JSON format to be used for getting credentials to Google Cloud Source repos */
+        gcpServiceAccountKey?: string;
         /** GithubAppEnterpriseBaseURL specifies the base URL of GitHub Enterprise installation. If empty will default to https://api.github.com */
         githubAppEnterpriseBaseUrl?: string;
         /** GithubAppId specifies the ID of the GitHub app used to access the repo */
@@ -1388,6 +1843,8 @@ export namespace Schemas {
         name?: string;
         /** Password contains the password or PAT used for authenticating at the remote repository */
         password?: string;
+        /** Reference between project and repository that allow you automatically to be added as item inside SourceRepos project entity */
+        project?: string;
         /** Proxy specifies the HTTP/HTTPS proxy used to access the repo */
         proxy?: string;
         /** Repo contains the URL to the remote repository */
@@ -1464,6 +1921,11 @@ export namespace Schemas {
         jqPathExpressions?: string[];
         jsonPointers?: string[];
         kind?: string;
+        /**
+         * ManagedFieldsManagers is a list of trusted managers. Fields mutated by those managers will take precedence over the
+         * desired state defined in the SCM and won't be displayed in diffs
+         */
+        managedFieldsManagers?: string[];
         name?: string;
         namespace?: string;
     }
@@ -1538,6 +2000,7 @@ export namespace Schemas {
         namespace?: string;
         requiresPruning?: boolean;
         status?: string;
+        syncWave?: string;
         version?: string;
     }
     export interface v1alpha1RetryStrategy {
@@ -1552,7 +2015,11 @@ export namespace Schemas {
         id?: string;
         /** Revision holds the revision the sync was performed against */
         revision?: string;
+        /** Revisions holds the revision of each source in sources field the sync was performed against */
+        revisions?: string[];
         source?: Schemas.v1alpha1ApplicationSource;
+        /** Sources is a reference to the application sources used for the sync operation */
+        sources?: Schemas.v1alpha1ApplicationSource[];
     }
     export interface v1alpha1RevisionMetadata {
         /**
@@ -1562,10 +2029,7 @@ export namespace Schemas {
          */
         author?: string;
         date?: Schemas.v1Time;
-        /**
-         * Message contains the message associated with the revision, most likely the commit message.
-         * The message is truncated to the first newline or 64 characters (which ever comes first)
-         */
+        /** Message contains the message associated with the revision, most likely the commit message. */
         message?: string;
         /** SignatureInfo contains a hint on the signer if the revision was signed with GPG, and signature verification is enabled. */
         signatureInfo?: string;
@@ -1574,6 +2038,115 @@ export namespace Schemas {
          * Floating tags can move from one revision to another
          */
         tags?: string[];
+    }
+    /** SCMProviderGenerator defines a generator that scrapes a SCMaaS API to find candidate repos. */
+    export interface v1alpha1SCMProviderGenerator {
+        azureDevOps?: Schemas.v1alpha1SCMProviderGeneratorAzureDevOps;
+        bitbucket?: Schemas.v1alpha1SCMProviderGeneratorBitbucket;
+        bitbucketServer?: Schemas.v1alpha1SCMProviderGeneratorBitbucketServer;
+        /**
+         * Which protocol to use for the SCM URL. Default is provider-specific but ssh if possible. Not all providers
+         * necessarily support all protocols.
+         */
+        cloneProtocol?: string;
+        /** Filters for which repos should be considered. */
+        filters?: Schemas.v1alpha1SCMProviderGeneratorFilter[];
+        gitea?: Schemas.v1alpha1SCMProviderGeneratorGitea;
+        github?: Schemas.v1alpha1SCMProviderGeneratorGithub;
+        gitlab?: Schemas.v1alpha1SCMProviderGeneratorGitlab;
+        /** Standard parameters. */
+        requeueAfterSeconds?: string;
+        template?: Schemas.v1alpha1ApplicationSetTemplate;
+    }
+    /** SCMProviderGeneratorAzureDevOps defines connection info specific to Azure DevOps. */
+    export interface v1alpha1SCMProviderGeneratorAzureDevOps {
+        accessTokenRef?: Schemas.v1alpha1SecretRef;
+        /** Scan all branches instead of just the default branch. */
+        allBranches?: boolean;
+        /** The URL to Azure DevOps. If blank, use https://dev.azure.com. */
+        api?: string;
+        /** Azure Devops organization. Required. E.g. "my-organization". */
+        organization?: string;
+        /** Azure Devops team project. Required. E.g. "my-team". */
+        teamProject?: string;
+    }
+    /** SCMProviderGeneratorBitbucket defines connection info specific to Bitbucket Cloud (API version 2). */
+    export interface v1alpha1SCMProviderGeneratorBitbucket {
+        /** Scan all branches instead of just the main branch. */
+        allBranches?: boolean;
+        appPasswordRef?: Schemas.v1alpha1SecretRef;
+        /** Bitbucket workspace to scan. Required. */
+        owner?: string;
+        /** Bitbucket user to use when authenticating.  Should have a "member" role to be able to read all repositories and branches.  Required */
+        user?: string;
+    }
+    /** SCMProviderGeneratorBitbucketServer defines connection info specific to Bitbucket Server. */
+    export interface v1alpha1SCMProviderGeneratorBitbucketServer {
+        /** Scan all branches instead of just the default branch. */
+        allBranches?: boolean;
+        /** The Bitbucket Server REST API URL to talk to. Required. */
+        api?: string;
+        basicAuth?: Schemas.v1alpha1BasicAuthBitbucketServer;
+        /** Project to scan. Required. */
+        project?: string;
+    }
+    /**
+     * SCMProviderGeneratorFilter is a single repository filter.
+     * If multiple filter types are set on a single struct, they will be AND'd together. All filters must
+     * pass for a repo to be included.
+     */
+    export interface v1alpha1SCMProviderGeneratorFilter {
+        /** A regex which must match the branch name. */
+        branchMatch?: string;
+        /** A regex which must match at least one label. */
+        labelMatch?: string;
+        /** An array of paths, all of which must not exist. */
+        pathsDoNotExist?: string[];
+        /** An array of paths, all of which must exist. */
+        pathsExist?: string[];
+        /** A regex for repo names. */
+        repositoryMatch?: string;
+    }
+    /** SCMProviderGeneratorGitea defines a connection info specific to Gitea. */
+    export interface v1alpha1SCMProviderGeneratorGitea {
+        /** Scan all branches instead of just the default branch. */
+        allBranches?: boolean;
+        /** The Gitea URL to talk to. For example https://gitea.mydomain.com/. */
+        api?: string;
+        /** Allow self-signed TLS / Certificates; default: false */
+        insecure?: boolean;
+        /** Gitea organization or user to scan. Required. */
+        owner?: string;
+        tokenRef?: Schemas.v1alpha1SecretRef;
+    }
+    /** SCMProviderGeneratorGithub defines connection info specific to GitHub. */
+    export interface v1alpha1SCMProviderGeneratorGithub {
+        /** Scan all branches instead of just the default branch. */
+        allBranches?: boolean;
+        /** The GitHub API URL to talk to. If blank, use https://api.github.com/. */
+        api?: string;
+        /** AppSecretName is a reference to a GitHub App repo-creds secret. */
+        appSecretName?: string;
+        /** GitHub org to scan. Required. */
+        organization?: string;
+        tokenRef?: Schemas.v1alpha1SecretRef;
+    }
+    /** SCMProviderGeneratorGitlab defines connection info specific to Gitlab. */
+    export interface v1alpha1SCMProviderGeneratorGitlab {
+        /** Scan all branches instead of just the default branch. */
+        allBranches?: boolean;
+        /** The Gitlab API URL to talk to. */
+        api?: string;
+        /** Gitlab group to scan. Required.  You can use either the project id (recommended) or the full namespaced path. */
+        group?: string;
+        /** Recurse through subgroups (true) or scan only the base group (false).  Defaults to "false" */
+        includeSubgroups?: boolean;
+        tokenRef?: Schemas.v1alpha1SecretRef;
+    }
+    /** Utility struct for a reference to a secret key. */
+    export interface v1alpha1SecretRef {
+        key?: string;
+        secretName?: string;
     }
     export interface v1alpha1SignatureKey {
         /** The ID of the key in hexadecimal notation */
@@ -1594,7 +2167,17 @@ export namespace Schemas {
          * If omitted, will use the revision specified in app spec.
          */
         revision?: string;
+        /**
+         * Revisions is the list of revision (Git) or chart version (Helm) which to sync each source in sources field for the application to
+         * If omitted, will use the revision specified in app spec.
+         */
+        revisions?: string[];
         source?: Schemas.v1alpha1ApplicationSource;
+        /**
+         * Sources overrides the source definition set in the application.
+         * This is typically set in a Rollback operation and is nil during a Sync operation
+         */
+        sources?: Schemas.v1alpha1ApplicationSource[];
         /** SyncOptions provide per-sync sync-options, e.g. Validate=false */
         syncOptions?: string[];
         syncStrategy?: Schemas.v1alpha1SyncStrategy;
@@ -1611,10 +2194,15 @@ export namespace Schemas {
         resources?: Schemas.v1alpha1ResourceResult[];
         /** Revision holds the revision this sync operation was performed to */
         revision?: string;
+        /** Revisions holds the revision this sync operation was performed for respective indexed source in sources field */
+        revisions?: string[];
         source?: Schemas.v1alpha1ApplicationSource;
+        /** Source records the application source information of the sync, used for comparing auto-sync */
+        sources?: Schemas.v1alpha1ApplicationSource[];
     }
     export interface v1alpha1SyncPolicy {
         automated?: Schemas.v1alpha1SyncPolicyAutomated;
+        managedNamespaceMetadata?: Schemas.v1alpha1ManagedNamespaceMetadata;
         retry?: Schemas.v1alpha1RetryStrategy;
         /** Options allow you to specify whole app sync-options */
         syncOptions?: string[];
@@ -1631,6 +2219,8 @@ export namespace Schemas {
         comparedTo?: Schemas.v1alpha1ComparedTo;
         /** Revision contains information about the revision the comparison has been performed to */
         revision?: string;
+        /** Revisions contains information about the revisions of multiple sources the comparison has been performed to */
+        revisions?: string[];
         /** Status is the sync state of the comparison */
         status?: string;
     }
@@ -1668,6 +2258,8 @@ export namespace Schemas {
         namespaces?: string[];
         /** Schedule is the time the window will begin, specified in cron format */
         schedule?: string;
+        /** TimeZone of the sync that will be applied to the schedule */
+        timeZone?: string;
     }
     export interface v1alpha1TLSClientConfig {
         /**
@@ -1703,7 +2295,6 @@ export namespace Schemas {
         GoVersion?: string;
         HelmVersion?: string;
         JsonnetVersion?: string;
-        KsonnetVersion?: string;
         KubectlVersion?: string;
         KustomizeVersion?: string;
         Platform?: string;
@@ -1790,13 +2381,17 @@ export interface Parameter$ApplicationService_List {
     /** forces application reconciliation if set to true. */
     refresh?: string;
     /** the project names to restrict returned list applications. */
-    project?: string[];
+    projects?: string[];
     /** when specified with a watch call, shows changes that occur after that particular version of a resource. */
     resourceVersion?: string;
-    /** the selector to to restrict returned list to applications only with matched labels. */
+    /** the selector to restrict returned list to applications only with matched labels. */
     selector?: string;
     /** the repoURL to restrict returned list applications. */
     repo?: string;
+    /** the application's namespace. */
+    appNamespace?: string;
+    /** the project names to restrict returned list applications (legacy name for backwards-compatibility). */
+    project?: string[];
 }
 export interface Response$ApplicationService_List$Status$200 {
     "application/json": Schemas.v1alpha1ApplicationList;
@@ -1813,6 +2408,15 @@ export interface Response$ApplicationService_Create$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
 export interface Response$ApplicationService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface RequestBody$ApplicationService_GetManifestsWithFiles {
+    "application/json": Schemas.applicationApplicationManifestQueryWithFilesWrapper;
+}
+export interface Response$ApplicationService_GetManifestsWithFiles$Status$200 {
+    "application/json": Schemas.repositoryManifestResponse;
+}
+export interface Response$ApplicationService_GetManifestsWithFiles$Status$default {
     "application/json": Schemas.runtimeError;
 }
 export interface Parameter$ApplicationService_Update {
@@ -1842,6 +2446,7 @@ export interface Parameter$ApplicationService_ManagedResources {
     version?: string;
     group?: string;
     kind?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_ManagedResources$Status$200 {
     "application/json": Schemas.applicationManagedResourcesResponse;
@@ -1856,6 +2461,7 @@ export interface Parameter$ApplicationService_ResourceTree {
     version?: string;
     group?: string;
     kind?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_ResourceTree$Status$200 {
     "application/json": Schemas.v1alpha1ApplicationTree;
@@ -1869,13 +2475,17 @@ export interface Parameter$ApplicationService_Get {
     /** forces application reconciliation if set to true. */
     refresh?: string;
     /** the project names to restrict returned list applications. */
-    project?: string[];
+    projects?: string[];
     /** when specified with a watch call, shows changes that occur after that particular version of a resource. */
     resourceVersion?: string;
-    /** the selector to to restrict returned list to applications only with matched labels. */
+    /** the selector to restrict returned list to applications only with matched labels. */
     selector?: string;
     /** the repoURL to restrict returned list applications. */
     repo?: string;
+    /** the application's namespace. */
+    appNamespace?: string;
+    /** the project names to restrict returned list applications (legacy name for backwards-compatibility). */
+    project?: string[];
 }
 export interface Response$ApplicationService_Get$Status$200 {
     "application/json": Schemas.v1alpha1Application;
@@ -1887,6 +2497,7 @@ export interface Parameter$ApplicationService_Delete {
     name: string;
     cascade?: boolean;
     propagationPolicy?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_Delete$Status$200 {
     "application/json": Schemas.applicationApplicationResponse;
@@ -1911,11 +2522,22 @@ export interface Parameter$ApplicationService_ListResourceEvents {
     resourceNamespace?: string;
     resourceName?: string;
     resourceUID?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_ListResourceEvents$Status$200 {
     "application/json": Schemas.v1EventList;
 }
 export interface Response$ApplicationService_ListResourceEvents$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_ListLinks {
+    name: string;
+    namespace?: string;
+}
+export interface Response$ApplicationService_ListLinks$Status$200 {
+    "application/json": Schemas.applicationLinksResponse;
+}
+export interface Response$ApplicationService_ListLinks$Status$default {
     "application/json": Schemas.runtimeError;
 }
 export interface Parameter$ApplicationService_PodLogs2 {
@@ -1944,6 +2566,8 @@ export interface Parameter$ApplicationService_PodLogs2 {
     kind?: string;
     group?: string;
     resourceName?: string;
+    previous?: boolean;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_PodLogs2$Status$200 {
     "application/json": {
@@ -1957,6 +2581,7 @@ export interface Response$ApplicationService_PodLogs2$Status$default {
 export interface Parameter$ApplicationService_GetManifests {
     name: string;
     revision?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_GetManifests$Status$200 {
     "application/json": Schemas.repositoryManifestResponse;
@@ -1966,6 +2591,7 @@ export interface Response$ApplicationService_GetManifests$Status$default {
 }
 export interface Parameter$ApplicationService_TerminateOperation {
     name: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_TerminateOperation$Status$200 {
     "application/json": Schemas.applicationOperationTerminateResponse;
@@ -1999,6 +2625,8 @@ export interface Parameter$ApplicationService_PodLogs {
     kind?: string;
     group?: string;
     resourceName?: string;
+    previous?: boolean;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_PodLogs$Status$200 {
     "application/json": {
@@ -2016,6 +2644,7 @@ export interface Parameter$ApplicationService_GetResource {
     version?: string;
     group?: string;
     kind?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_GetResource$Status$200 {
     "application/json": Schemas.applicationApplicationResourceResponse;
@@ -2031,6 +2660,7 @@ export interface Parameter$ApplicationService_PatchResource {
     group?: string;
     kind?: string;
     patchType?: string;
+    appNamespace?: string;
 }
 export type RequestBody$ApplicationService_PatchResource = RequestBodies.ApplicationService_PatchResourceBody.Content;
 export interface Response$ApplicationService_PatchResource$Status$200 {
@@ -2048,6 +2678,7 @@ export interface Parameter$ApplicationService_DeleteResource {
     kind?: string;
     force?: boolean;
     orphan?: boolean;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_DeleteResource$Status$200 {
     "application/json": Schemas.applicationApplicationResponse;
@@ -2062,6 +2693,7 @@ export interface Parameter$ApplicationService_ListResourceActions {
     version?: string;
     group?: string;
     kind?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_ListResourceActions$Status$200 {
     "application/json": Schemas.applicationResourceActionsListResponse;
@@ -2076,6 +2708,7 @@ export interface Parameter$ApplicationService_RunResourceAction {
     version?: string;
     group?: string;
     kind?: string;
+    appNamespace?: string;
 }
 export type RequestBody$ApplicationService_RunResourceAction = RequestBodies.ApplicationService_PatchResourceBody.Content;
 export interface Response$ApplicationService_RunResourceAction$Status$200 {
@@ -2084,11 +2717,28 @@ export interface Response$ApplicationService_RunResourceAction$Status$200 {
 export interface Response$ApplicationService_RunResourceAction$Status$default {
     "application/json": Schemas.runtimeError;
 }
+export interface Parameter$ApplicationService_ListResourceLinks {
+    name: string;
+    namespace?: string;
+    resourceName?: string;
+    version?: string;
+    group?: string;
+    kind?: string;
+    appNamespace?: string;
+}
+export interface Response$ApplicationService_ListResourceLinks$Status$200 {
+    "application/json": Schemas.applicationLinksResponse;
+}
+export interface Response$ApplicationService_ListResourceLinks$Status$default {
+    "application/json": Schemas.runtimeError;
+}
 export interface Parameter$ApplicationService_RevisionMetadata {
     /** the application's name */
     name: string;
     /** the revision of the app */
     revision: string;
+    /** the application's namespace. */
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_RevisionMetadata$Status$200 {
     "application/json": Schemas.v1alpha1RevisionMetadata;
@@ -2111,6 +2761,7 @@ export interface Response$ApplicationService_Rollback$Status$default {
 export interface Parameter$ApplicationService_UpdateSpec {
     name: string;
     validate?: boolean;
+    appNamespace?: string;
 }
 export interface RequestBody$ApplicationService_UpdateSpec {
     "application/json": Schemas.v1alpha1ApplicationSpec;
@@ -2135,11 +2786,55 @@ export interface Response$ApplicationService_Sync$Status$default {
 }
 export interface Parameter$ApplicationService_GetApplicationSyncWindows {
     name: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_GetApplicationSyncWindows$Status$200 {
     "application/json": Schemas.applicationApplicationSyncWindowsResponse;
 }
 export interface Response$ApplicationService_GetApplicationSyncWindows$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationSetService_List {
+    /** the project names to restrict returned list applicationsets. */
+    projects?: string[];
+    /** the selector to restrict returned list to applications only with matched labels. */
+    selector?: string;
+}
+export interface Response$ApplicationSetService_List$Status$200 {
+    "application/json": Schemas.v1alpha1ApplicationSetList;
+}
+export interface Response$ApplicationSetService_List$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationSetService_Create {
+    upsert?: boolean;
+}
+export interface RequestBody$ApplicationSetService_Create {
+    "application/json": Schemas.v1alpha1ApplicationSet;
+}
+export interface Response$ApplicationSetService_Create$Status$200 {
+    "application/json": Schemas.v1alpha1ApplicationSet;
+}
+export interface Response$ApplicationSetService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationSetService_Get {
+    /** the applicationsets's name */
+    name: string;
+}
+export interface Response$ApplicationSetService_Get$Status$200 {
+    "application/json": Schemas.v1alpha1ApplicationSet;
+}
+export interface Response$ApplicationSetService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationSetService_Delete {
+    name: string;
+}
+export interface Response$ApplicationSetService_Delete$Status$200 {
+    "application/json": Schemas.applicationsetApplicationSetResponse;
+}
+export interface Response$ApplicationSetService_Delete$Status$default {
     "application/json": Schemas.runtimeError;
 }
 export interface Parameter$CertificateService_ListCertificates {
@@ -2186,6 +2881,10 @@ export interface Response$CertificateService_DeleteCertificate$Status$default {
 export interface Parameter$ClusterService_List {
     server?: string;
     name?: string;
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
+    /** value holds the cluster server URL or cluster name. */
+    "id.value"?: string;
 }
 export interface Response$ClusterService_List$Status$200 {
     "application/json": Schemas.v1alpha1ClusterList;
@@ -2203,10 +2902,26 @@ export interface Response$ClusterService_Create$Status$200 {
 export interface Response$ClusterService_Create$Status$default {
     "application/json": Schemas.runtimeError;
 }
+export interface Parameter$ClusterService_Get {
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+    server?: string;
+    name?: string;
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
+}
+export interface Response$ClusterService_Get$Status$200 {
+    "application/json": Schemas.v1alpha1Cluster;
+}
+export interface Response$ClusterService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
 export interface Parameter$ClusterService_Update {
-    /** Server is the API server URL of the Kubernetes cluster */
-    "cluster.server": string;
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
     updatedFields?: string[];
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
 }
 export type RequestBody$ClusterService_Update = RequestBodies.v1alpha1Cluster.Content;
 export interface Response$ClusterService_Update$Status$200 {
@@ -2215,19 +2930,13 @@ export interface Response$ClusterService_Update$Status$200 {
 export interface Response$ClusterService_Update$Status$default {
     "application/json": Schemas.runtimeError;
 }
-export interface Parameter$ClusterService_Get {
-    server: string;
-    name?: string;
-}
-export interface Response$ClusterService_Get$Status$200 {
-    "application/json": Schemas.v1alpha1Cluster;
-}
-export interface Response$ClusterService_Get$Status$default {
-    "application/json": Schemas.runtimeError;
-}
 export interface Parameter$ClusterService_Delete {
-    server: string;
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+    server?: string;
     name?: string;
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
 }
 export interface Response$ClusterService_Delete$Status$200 {
     "application/json": Schemas.clusterClusterResponse;
@@ -2236,7 +2945,8 @@ export interface Response$ClusterService_Delete$Status$default {
     "application/json": Schemas.runtimeError;
 }
 export interface Parameter$ClusterService_InvalidateCache {
-    server: string;
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
 }
 export interface Response$ClusterService_InvalidateCache$Status$200 {
     "application/json": Schemas.v1alpha1Cluster;
@@ -2245,7 +2955,8 @@ export interface Response$ClusterService_InvalidateCache$Status$default {
     "application/json": Schemas.runtimeError;
 }
 export interface Parameter$ClusterService_RotateAuth {
-    server: string;
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
 }
 export interface Response$ClusterService_RotateAuth$Status$200 {
     "application/json": Schemas.clusterClusterResponse;
@@ -2296,6 +3007,24 @@ export interface Response$GPGKeyService_Get$Status$200 {
 export interface Response$GPGKeyService_Get$Status$default {
     "application/json": Schemas.runtimeError;
 }
+export interface Response$NotificationService_ListServices$Status$200 {
+    "application/json": Schemas.notificationServiceList;
+}
+export interface Response$NotificationService_ListServices$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Response$NotificationService_ListTemplates$Status$200 {
+    "application/json": Schemas.notificationTemplateList;
+}
+export interface Response$NotificationService_ListTemplates$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Response$NotificationService_ListTriggers$Status$200 {
+    "application/json": Schemas.notificationTriggerList;
+}
+export interface Response$NotificationService_ListTriggers$Status$default {
+    "application/json": Schemas.runtimeError;
+}
 export interface Parameter$ProjectService_List {
     name?: string;
 }
@@ -2332,6 +3061,15 @@ export interface Response$ProjectService_Delete$Status$200 {
 export interface Response$ProjectService_Delete$Status$default {
     "application/json": Schemas.runtimeError;
 }
+export interface Parameter$ProjectService_GetDetailedProject {
+    name: string;
+}
+export interface Response$ProjectService_GetDetailedProject$Status$200 {
+    "application/json": Schemas.projectDetailedProjectsResponse;
+}
+export interface Response$ProjectService_GetDetailedProject$Status$default {
+    "application/json": Schemas.runtimeError;
+}
 export interface Parameter$ProjectService_ListEvents {
     name: string;
 }
@@ -2348,6 +3086,15 @@ export interface Response$ProjectService_GetGlobalProjects$Status$200 {
     "application/json": Schemas.projectGlobalProjectsResponse;
 }
 export interface Response$ProjectService_GetGlobalProjects$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_ListLinks {
+    name: string;
+}
+export interface Response$ProjectService_ListLinks$Status$200 {
+    "application/json": Schemas.applicationLinksResponse;
+}
+export interface Response$ProjectService_ListLinks$Status$default {
     "application/json": Schemas.runtimeError;
 }
 export interface Parameter$ProjectService_GetSyncWindowsState {
@@ -2517,6 +3264,8 @@ export interface Response$RepositoryService_DeleteRepository$Status$default {
 export interface Parameter$RepositoryService_ListApps {
     repo: string;
     revision?: string;
+    appName?: string;
+    appProject?: string;
 }
 export interface Response$RepositoryService_ListApps$Status$200 {
     "application/json": Schemas.repositoryRepoAppsResponse;
@@ -2579,6 +3328,12 @@ export interface Parameter$RepositoryService_ValidateAccess {
     githubAppEnterpriseBaseUrl?: string;
     /** HTTP/HTTPS proxy to access the repository. */
     proxy?: string;
+    /** Reference between project and repository that allow you automatically to be added as item inside SourceRepos project entity. */
+    project?: string;
+    /** Google Cloud Platform service account key. */
+    gcpServiceAccountKey?: string;
+    /** Whether to force HTTP basic auth. */
+    forceHttpBasicAuth?: boolean;
 }
 export interface RequestBody$RepositoryService_ValidateAccess {
     "application/json": string;
@@ -2629,19 +3384,29 @@ export interface Response$SettingsService_Get$Status$200 {
 export interface Response$SettingsService_Get$Status$default {
     "application/json": Schemas.runtimeError;
 }
+export interface Response$SettingsService_GetPlugins$Status$200 {
+    "application/json": Schemas.clusterSettingsPluginsResponse;
+}
+export interface Response$SettingsService_GetPlugins$Status$default {
+    "application/json": Schemas.runtimeError;
+}
 export interface Parameter$ApplicationService_Watch {
     /** the application's name. */
     name?: string;
     /** forces application reconciliation if set to true. */
     refresh?: string;
     /** the project names to restrict returned list applications. */
-    project?: string[];
+    projects?: string[];
     /** when specified with a watch call, shows changes that occur after that particular version of a resource. */
     resourceVersion?: string;
-    /** the selector to to restrict returned list to applications only with matched labels. */
+    /** the selector to restrict returned list to applications only with matched labels. */
     selector?: string;
     /** the repoURL to restrict returned list applications. */
     repo?: string;
+    /** the application's namespace. */
+    appNamespace?: string;
+    /** the project names to restrict returned list applications (legacy name for backwards-compatibility). */
+    project?: string[];
 }
 export interface Response$ApplicationService_Watch$Status$200 {
     "application/json": {
@@ -2659,6 +3424,7 @@ export interface Parameter$ApplicationService_WatchResourceTree {
     version?: string;
     group?: string;
     kind?: string;
+    appNamespace?: string;
 }
 export interface Response$ApplicationService_WatchResourceTree$Status$200 {
     "application/json": {
@@ -2709,6 +3475,11 @@ export interface Params$ApplicationService_Create {
     parameter: Parameter$ApplicationService_Create;
     requestBody: RequestBody$ApplicationService_Create["application/json"];
 }
+export type RequestContentType$ApplicationService_GetManifestsWithFiles = keyof RequestBody$ApplicationService_GetManifestsWithFiles;
+export type ResponseContentType$ApplicationService_GetManifestsWithFiles = keyof Response$ApplicationService_GetManifestsWithFiles$Status$200;
+export interface Params$ApplicationService_GetManifestsWithFiles {
+    requestBody: RequestBody$ApplicationService_GetManifestsWithFiles["application/json"];
+}
 export type RequestContentType$ApplicationService_Update = keyof RequestBody$ApplicationService_Update;
 export type ResponseContentType$ApplicationService_Update = keyof Response$ApplicationService_Update$Status$200;
 export interface Params$ApplicationService_Update {
@@ -2740,6 +3511,10 @@ export interface Params$ApplicationService_Patch {
 export type ResponseContentType$ApplicationService_ListResourceEvents = keyof Response$ApplicationService_ListResourceEvents$Status$200;
 export interface Params$ApplicationService_ListResourceEvents {
     parameter: Parameter$ApplicationService_ListResourceEvents;
+}
+export type ResponseContentType$ApplicationService_ListLinks = keyof Response$ApplicationService_ListLinks$Status$200;
+export interface Params$ApplicationService_ListLinks {
+    parameter: Parameter$ApplicationService_ListLinks;
 }
 export type ResponseContentType$ApplicationService_PodLogs2 = keyof Response$ApplicationService_PodLogs2$Status$200;
 export interface Params$ApplicationService_PodLogs2 {
@@ -2781,6 +3556,10 @@ export interface Params$ApplicationService_RunResourceAction {
     parameter: Parameter$ApplicationService_RunResourceAction;
     requestBody: RequestBody$ApplicationService_RunResourceAction["application/json"];
 }
+export type ResponseContentType$ApplicationService_ListResourceLinks = keyof Response$ApplicationService_ListResourceLinks$Status$200;
+export interface Params$ApplicationService_ListResourceLinks {
+    parameter: Parameter$ApplicationService_ListResourceLinks;
+}
 export type ResponseContentType$ApplicationService_RevisionMetadata = keyof Response$ApplicationService_RevisionMetadata$Status$200;
 export interface Params$ApplicationService_RevisionMetadata {
     parameter: Parameter$ApplicationService_RevisionMetadata;
@@ -2807,6 +3586,24 @@ export type ResponseContentType$ApplicationService_GetApplicationSyncWindows = k
 export interface Params$ApplicationService_GetApplicationSyncWindows {
     parameter: Parameter$ApplicationService_GetApplicationSyncWindows;
 }
+export type ResponseContentType$ApplicationSetService_List = keyof Response$ApplicationSetService_List$Status$200;
+export interface Params$ApplicationSetService_List {
+    parameter: Parameter$ApplicationSetService_List;
+}
+export type RequestContentType$ApplicationSetService_Create = keyof RequestBody$ApplicationSetService_Create;
+export type ResponseContentType$ApplicationSetService_Create = keyof Response$ApplicationSetService_Create$Status$200;
+export interface Params$ApplicationSetService_Create {
+    parameter: Parameter$ApplicationSetService_Create;
+    requestBody: RequestBody$ApplicationSetService_Create["application/json"];
+}
+export type ResponseContentType$ApplicationSetService_Get = keyof Response$ApplicationSetService_Get$Status$200;
+export interface Params$ApplicationSetService_Get {
+    parameter: Parameter$ApplicationSetService_Get;
+}
+export type ResponseContentType$ApplicationSetService_Delete = keyof Response$ApplicationSetService_Delete$Status$200;
+export interface Params$ApplicationSetService_Delete {
+    parameter: Parameter$ApplicationSetService_Delete;
+}
 export type ResponseContentType$CertificateService_ListCertificates = keyof Response$CertificateService_ListCertificates$Status$200;
 export interface Params$CertificateService_ListCertificates {
     parameter: Parameter$CertificateService_ListCertificates;
@@ -2831,15 +3628,15 @@ export interface Params$ClusterService_Create {
     parameter: Parameter$ClusterService_Create;
     requestBody: RequestBody$ClusterService_Create["application/json"];
 }
+export type ResponseContentType$ClusterService_Get = keyof Response$ClusterService_Get$Status$200;
+export interface Params$ClusterService_Get {
+    parameter: Parameter$ClusterService_Get;
+}
 export type RequestContentType$ClusterService_Update = keyof RequestBody$ClusterService_Update;
 export type ResponseContentType$ClusterService_Update = keyof Response$ClusterService_Update$Status$200;
 export interface Params$ClusterService_Update {
     parameter: Parameter$ClusterService_Update;
     requestBody: RequestBody$ClusterService_Update["application/json"];
-}
-export type ResponseContentType$ClusterService_Get = keyof Response$ClusterService_Get$Status$200;
-export interface Params$ClusterService_Get {
-    parameter: Parameter$ClusterService_Get;
 }
 export type ResponseContentType$ClusterService_Delete = keyof Response$ClusterService_Delete$Status$200;
 export interface Params$ClusterService_Delete {
@@ -2871,6 +3668,9 @@ export type ResponseContentType$GPGKeyService_Get = keyof Response$GPGKeyService
 export interface Params$GPGKeyService_Get {
     parameter: Parameter$GPGKeyService_Get;
 }
+export type ResponseContentType$NotificationService_ListServices = keyof Response$NotificationService_ListServices$Status$200;
+export type ResponseContentType$NotificationService_ListTemplates = keyof Response$NotificationService_ListTemplates$Status$200;
+export type ResponseContentType$NotificationService_ListTriggers = keyof Response$NotificationService_ListTriggers$Status$200;
 export type ResponseContentType$ProjectService_List = keyof Response$ProjectService_List$Status$200;
 export interface Params$ProjectService_List {
     parameter: Parameter$ProjectService_List;
@@ -2888,6 +3688,10 @@ export type ResponseContentType$ProjectService_Delete = keyof Response$ProjectSe
 export interface Params$ProjectService_Delete {
     parameter: Parameter$ProjectService_Delete;
 }
+export type ResponseContentType$ProjectService_GetDetailedProject = keyof Response$ProjectService_GetDetailedProject$Status$200;
+export interface Params$ProjectService_GetDetailedProject {
+    parameter: Parameter$ProjectService_GetDetailedProject;
+}
 export type ResponseContentType$ProjectService_ListEvents = keyof Response$ProjectService_ListEvents$Status$200;
 export interface Params$ProjectService_ListEvents {
     parameter: Parameter$ProjectService_ListEvents;
@@ -2895,6 +3699,10 @@ export interface Params$ProjectService_ListEvents {
 export type ResponseContentType$ProjectService_GetGlobalProjects = keyof Response$ProjectService_GetGlobalProjects$Status$200;
 export interface Params$ProjectService_GetGlobalProjects {
     parameter: Parameter$ProjectService_GetGlobalProjects;
+}
+export type ResponseContentType$ProjectService_ListLinks = keyof Response$ProjectService_ListLinks$Status$200;
+export interface Params$ProjectService_ListLinks {
+    parameter: Parameter$ProjectService_ListLinks;
 }
 export type ResponseContentType$ProjectService_GetSyncWindowsState = keyof Response$ProjectService_GetSyncWindowsState$Status$200;
 export interface Params$ProjectService_GetSyncWindowsState {
@@ -2992,6 +3800,7 @@ export interface Params$SessionService_Create {
 export type ResponseContentType$SessionService_Delete = keyof Response$SessionService_Delete$Status$200;
 export type ResponseContentType$SessionService_GetUserInfo = keyof Response$SessionService_GetUserInfo$Status$200;
 export type ResponseContentType$SettingsService_Get = keyof Response$SettingsService_Get$Status$200;
+export type ResponseContentType$SettingsService_GetPlugins = keyof Response$SettingsService_GetPlugins$Status$200;
 export type ResponseContentType$ApplicationService_Watch = keyof Response$ApplicationService_Watch$Status$200;
 export interface Params$ApplicationService_Watch {
     parameter: Parameter$ApplicationService_Watch;
@@ -3013,7 +3822,7 @@ export interface QueryParameter {
 export interface QueryParameters {
     [key: string]: QueryParameter;
 }
-export type SuccessResponses = Response$AccountService_ListAccounts$Status$200 | Response$AccountService_CanI$Status$200 | Response$AccountService_UpdatePassword$Status$200 | Response$AccountService_GetAccount$Status$200 | Response$AccountService_CreateToken$Status$200 | Response$AccountService_DeleteToken$Status$200 | Response$ApplicationService_List$Status$200 | Response$ApplicationService_Create$Status$200 | Response$ApplicationService_Update$Status$200 | Response$ApplicationService_ManagedResources$Status$200 | Response$ApplicationService_ResourceTree$Status$200 | Response$ApplicationService_Get$Status$200 | Response$ApplicationService_Delete$Status$200 | Response$ApplicationService_Patch$Status$200 | Response$ApplicationService_ListResourceEvents$Status$200 | Response$ApplicationService_PodLogs2$Status$200 | Response$ApplicationService_GetManifests$Status$200 | Response$ApplicationService_TerminateOperation$Status$200 | Response$ApplicationService_PodLogs$Status$200 | Response$ApplicationService_GetResource$Status$200 | Response$ApplicationService_PatchResource$Status$200 | Response$ApplicationService_DeleteResource$Status$200 | Response$ApplicationService_ListResourceActions$Status$200 | Response$ApplicationService_RunResourceAction$Status$200 | Response$ApplicationService_RevisionMetadata$Status$200 | Response$ApplicationService_Rollback$Status$200 | Response$ApplicationService_UpdateSpec$Status$200 | Response$ApplicationService_Sync$Status$200 | Response$ApplicationService_GetApplicationSyncWindows$Status$200 | Response$CertificateService_ListCertificates$Status$200 | Response$CertificateService_CreateCertificate$Status$200 | Response$CertificateService_DeleteCertificate$Status$200 | Response$ClusterService_List$Status$200 | Response$ClusterService_Create$Status$200 | Response$ClusterService_Update$Status$200 | Response$ClusterService_Get$Status$200 | Response$ClusterService_Delete$Status$200 | Response$ClusterService_InvalidateCache$Status$200 | Response$ClusterService_RotateAuth$Status$200 | Response$GPGKeyService_List$Status$200 | Response$GPGKeyService_Create$Status$200 | Response$GPGKeyService_Delete$Status$200 | Response$GPGKeyService_Get$Status$200 | Response$ProjectService_List$Status$200 | Response$ProjectService_Create$Status$200 | Response$ProjectService_Get$Status$200 | Response$ProjectService_Delete$Status$200 | Response$ProjectService_ListEvents$Status$200 | Response$ProjectService_GetGlobalProjects$Status$200 | Response$ProjectService_GetSyncWindowsState$Status$200 | Response$ProjectService_Update$Status$200 | Response$ProjectService_CreateToken$Status$200 | Response$ProjectService_DeleteToken$Status$200 | Response$RepoCredsService_ListRepositoryCredentials$Status$200 | Response$RepoCredsService_CreateRepositoryCredentials$Status$200 | Response$RepoCredsService_UpdateRepositoryCredentials$Status$200 | Response$RepoCredsService_DeleteRepositoryCredentials$Status$200 | Response$RepositoryService_ListRepositories$Status$200 | Response$RepositoryService_CreateRepository$Status$200 | Response$RepositoryService_UpdateRepository$Status$200 | Response$RepositoryService_Get$Status$200 | Response$RepositoryService_DeleteRepository$Status$200 | Response$RepositoryService_ListApps$Status$200 | Response$RepositoryService_GetHelmCharts$Status$200 | Response$RepositoryService_ListRefs$Status$200 | Response$RepositoryService_ValidateAccess$Status$200 | Response$RepositoryService_GetAppDetails$Status$200 | Response$SessionService_Create$Status$200 | Response$SessionService_Delete$Status$200 | Response$SessionService_GetUserInfo$Status$200 | Response$SettingsService_Get$Status$200 | Response$ApplicationService_Watch$Status$200 | Response$ApplicationService_WatchResourceTree$Status$200 | Response$VersionService_Version$Status$200;
+export type SuccessResponses = Response$AccountService_ListAccounts$Status$200 | Response$AccountService_CanI$Status$200 | Response$AccountService_UpdatePassword$Status$200 | Response$AccountService_GetAccount$Status$200 | Response$AccountService_CreateToken$Status$200 | Response$AccountService_DeleteToken$Status$200 | Response$ApplicationService_List$Status$200 | Response$ApplicationService_Create$Status$200 | Response$ApplicationService_GetManifestsWithFiles$Status$200 | Response$ApplicationService_Update$Status$200 | Response$ApplicationService_ManagedResources$Status$200 | Response$ApplicationService_ResourceTree$Status$200 | Response$ApplicationService_Get$Status$200 | Response$ApplicationService_Delete$Status$200 | Response$ApplicationService_Patch$Status$200 | Response$ApplicationService_ListResourceEvents$Status$200 | Response$ApplicationService_ListLinks$Status$200 | Response$ApplicationService_PodLogs2$Status$200 | Response$ApplicationService_GetManifests$Status$200 | Response$ApplicationService_TerminateOperation$Status$200 | Response$ApplicationService_PodLogs$Status$200 | Response$ApplicationService_GetResource$Status$200 | Response$ApplicationService_PatchResource$Status$200 | Response$ApplicationService_DeleteResource$Status$200 | Response$ApplicationService_ListResourceActions$Status$200 | Response$ApplicationService_RunResourceAction$Status$200 | Response$ApplicationService_ListResourceLinks$Status$200 | Response$ApplicationService_RevisionMetadata$Status$200 | Response$ApplicationService_Rollback$Status$200 | Response$ApplicationService_UpdateSpec$Status$200 | Response$ApplicationService_Sync$Status$200 | Response$ApplicationService_GetApplicationSyncWindows$Status$200 | Response$ApplicationSetService_List$Status$200 | Response$ApplicationSetService_Create$Status$200 | Response$ApplicationSetService_Get$Status$200 | Response$ApplicationSetService_Delete$Status$200 | Response$CertificateService_ListCertificates$Status$200 | Response$CertificateService_CreateCertificate$Status$200 | Response$CertificateService_DeleteCertificate$Status$200 | Response$ClusterService_List$Status$200 | Response$ClusterService_Create$Status$200 | Response$ClusterService_Get$Status$200 | Response$ClusterService_Update$Status$200 | Response$ClusterService_Delete$Status$200 | Response$ClusterService_InvalidateCache$Status$200 | Response$ClusterService_RotateAuth$Status$200 | Response$GPGKeyService_List$Status$200 | Response$GPGKeyService_Create$Status$200 | Response$GPGKeyService_Delete$Status$200 | Response$GPGKeyService_Get$Status$200 | Response$NotificationService_ListServices$Status$200 | Response$NotificationService_ListTemplates$Status$200 | Response$NotificationService_ListTriggers$Status$200 | Response$ProjectService_List$Status$200 | Response$ProjectService_Create$Status$200 | Response$ProjectService_Get$Status$200 | Response$ProjectService_Delete$Status$200 | Response$ProjectService_GetDetailedProject$Status$200 | Response$ProjectService_ListEvents$Status$200 | Response$ProjectService_GetGlobalProjects$Status$200 | Response$ProjectService_ListLinks$Status$200 | Response$ProjectService_GetSyncWindowsState$Status$200 | Response$ProjectService_Update$Status$200 | Response$ProjectService_CreateToken$Status$200 | Response$ProjectService_DeleteToken$Status$200 | Response$RepoCredsService_ListRepositoryCredentials$Status$200 | Response$RepoCredsService_CreateRepositoryCredentials$Status$200 | Response$RepoCredsService_UpdateRepositoryCredentials$Status$200 | Response$RepoCredsService_DeleteRepositoryCredentials$Status$200 | Response$RepositoryService_ListRepositories$Status$200 | Response$RepositoryService_CreateRepository$Status$200 | Response$RepositoryService_UpdateRepository$Status$200 | Response$RepositoryService_Get$Status$200 | Response$RepositoryService_DeleteRepository$Status$200 | Response$RepositoryService_ListApps$Status$200 | Response$RepositoryService_GetHelmCharts$Status$200 | Response$RepositoryService_ListRefs$Status$200 | Response$RepositoryService_ValidateAccess$Status$200 | Response$RepositoryService_GetAppDetails$Status$200 | Response$SessionService_Create$Status$200 | Response$SessionService_Delete$Status$200 | Response$SessionService_GetUserInfo$Status$200 | Response$SettingsService_Get$Status$200 | Response$SettingsService_GetPlugins$Status$200 | Response$ApplicationService_Watch$Status$200 | Response$ApplicationService_WatchResourceTree$Status$200 | Response$VersionService_Version$Status$200;
 export namespace ErrorResponse {
     export type AccountService_ListAccounts = void;
     export type AccountService_CanI = void;
@@ -3023,6 +3832,7 @@ export namespace ErrorResponse {
     export type AccountService_DeleteToken = void;
     export type ApplicationService_List = void;
     export type ApplicationService_Create = void;
+    export type ApplicationService_GetManifestsWithFiles = void;
     export type ApplicationService_Update = void;
     export type ApplicationService_ManagedResources = void;
     export type ApplicationService_ResourceTree = void;
@@ -3030,6 +3840,7 @@ export namespace ErrorResponse {
     export type ApplicationService_Delete = void;
     export type ApplicationService_Patch = void;
     export type ApplicationService_ListResourceEvents = void;
+    export type ApplicationService_ListLinks = void;
     export type ApplicationService_PodLogs2 = void;
     export type ApplicationService_GetManifests = void;
     export type ApplicationService_TerminateOperation = void;
@@ -3039,18 +3850,23 @@ export namespace ErrorResponse {
     export type ApplicationService_DeleteResource = void;
     export type ApplicationService_ListResourceActions = void;
     export type ApplicationService_RunResourceAction = void;
+    export type ApplicationService_ListResourceLinks = void;
     export type ApplicationService_RevisionMetadata = void;
     export type ApplicationService_Rollback = void;
     export type ApplicationService_UpdateSpec = void;
     export type ApplicationService_Sync = void;
     export type ApplicationService_GetApplicationSyncWindows = void;
+    export type ApplicationSetService_List = void;
+    export type ApplicationSetService_Create = void;
+    export type ApplicationSetService_Get = void;
+    export type ApplicationSetService_Delete = void;
     export type CertificateService_ListCertificates = void;
     export type CertificateService_CreateCertificate = void;
     export type CertificateService_DeleteCertificate = void;
     export type ClusterService_List = void;
     export type ClusterService_Create = void;
-    export type ClusterService_Update = void;
     export type ClusterService_Get = void;
+    export type ClusterService_Update = void;
     export type ClusterService_Delete = void;
     export type ClusterService_InvalidateCache = void;
     export type ClusterService_RotateAuth = void;
@@ -3058,12 +3874,17 @@ export namespace ErrorResponse {
     export type GPGKeyService_Create = void;
     export type GPGKeyService_Delete = void;
     export type GPGKeyService_Get = void;
+    export type NotificationService_ListServices = void;
+    export type NotificationService_ListTemplates = void;
+    export type NotificationService_ListTriggers = void;
     export type ProjectService_List = void;
     export type ProjectService_Create = void;
     export type ProjectService_Get = void;
     export type ProjectService_Delete = void;
+    export type ProjectService_GetDetailedProject = void;
     export type ProjectService_ListEvents = void;
     export type ProjectService_GetGlobalProjects = void;
+    export type ProjectService_ListLinks = void;
     export type ProjectService_GetSyncWindowsState = void;
     export type ProjectService_Update = void;
     export type ProjectService_CreateToken = void;
@@ -3086,6 +3907,7 @@ export namespace ErrorResponse {
     export type SessionService_Delete = void;
     export type SessionService_GetUserInfo = void;
     export type SettingsService_Get = void;
+    export type SettingsService_GetPlugins = void;
     export type ApplicationService_Watch = void;
     export type ApplicationService_WatchResourceTree = void;
     export type VersionService_Version = void;
@@ -3224,10 +4046,12 @@ export class Client<RequestOption> {
         const queryParameters: QueryParameters = {
             name: { value: params.parameter.name, explode: false },
             refresh: { value: params.parameter.refresh, explode: false },
-            project: { value: params.parameter.project, explode: true },
+            projects: { value: params.parameter.projects, explode: true },
             resourceVersion: { value: params.parameter.resourceVersion, explode: false },
             selector: { value: params.parameter.selector, explode: false },
-            repo: { value: params.parameter.repo, explode: false }
+            repo: { value: params.parameter.repo, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false },
+            project: { value: params.parameter.project, explode: true }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3257,6 +4081,24 @@ export class Client<RequestOption> {
             headers,
             requestBody: params.requestBody,
             queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * GetManifestsWithFiles returns application manifests using provided files to generate them
+     * operationId: ApplicationService_GetManifestsWithFiles
+     * Request URI: /api/v1/applications/manifestsWithFiles
+     */
+    public async ApplicationService_GetManifestsWithFiles(params: Params$ApplicationService_GetManifestsWithFiles, option?: RequestOption): Promise<Response$ApplicationService_GetManifestsWithFiles$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applications/manifestsWithFiles`;
+        const headers = {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "POST",
+            url,
+            headers,
+            requestBody: params.requestBody
         }, option);
     }
     /**
@@ -3296,7 +4138,8 @@ export class Client<RequestOption> {
             name: { value: params.parameter.name, explode: false },
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
-            kind: { value: params.parameter.kind, explode: false }
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3320,7 +4163,8 @@ export class Client<RequestOption> {
             name: { value: params.parameter.name, explode: false },
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
-            kind: { value: params.parameter.kind, explode: false }
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3341,10 +4185,12 @@ export class Client<RequestOption> {
         };
         const queryParameters: QueryParameters = {
             refresh: { value: params.parameter.refresh, explode: false },
-            project: { value: params.parameter.project, explode: true },
+            projects: { value: params.parameter.projects, explode: true },
             resourceVersion: { value: params.parameter.resourceVersion, explode: false },
             selector: { value: params.parameter.selector, explode: false },
-            repo: { value: params.parameter.repo, explode: false }
+            repo: { value: params.parameter.repo, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false },
+            project: { value: params.parameter.project, explode: true }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3365,7 +4211,8 @@ export class Client<RequestOption> {
         };
         const queryParameters: QueryParameters = {
             cascade: { value: params.parameter.cascade, explode: false },
-            propagationPolicy: { value: params.parameter.propagationPolicy, explode: false }
+            propagationPolicy: { value: params.parameter.propagationPolicy, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "DELETE",
@@ -3405,7 +4252,28 @@ export class Client<RequestOption> {
         const queryParameters: QueryParameters = {
             resourceNamespace: { value: params.parameter.resourceNamespace, explode: false },
             resourceName: { value: params.parameter.resourceName, explode: false },
-            resourceUID: { value: params.parameter.resourceUID, explode: false }
+            resourceUID: { value: params.parameter.resourceUID, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * ListLinks returns the list of all application deep links
+     * operationId: ApplicationService_ListLinks
+     * Request URI: /api/v1/applications/{name}/links
+     */
+    public async ApplicationService_ListLinks(params: Params$ApplicationService_ListLinks, option?: RequestOption): Promise<Response$ApplicationService_ListLinks$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/links`;
+        const headers = {
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            namespace: { value: params.parameter.namespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3437,7 +4305,9 @@ export class Client<RequestOption> {
             filter: { value: params.parameter.filter, explode: false },
             kind: { value: params.parameter.kind, explode: false },
             group: { value: params.parameter.group, explode: false },
-            resourceName: { value: params.parameter.resourceName, explode: false }
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            previous: { value: params.parameter.previous, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3457,7 +4327,8 @@ export class Client<RequestOption> {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            revision: { value: params.parameter.revision, explode: false }
+            revision: { value: params.parameter.revision, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3476,10 +4347,14 @@ export class Client<RequestOption> {
         const headers = {
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "DELETE",
             url,
-            headers
+            headers,
+            queryParameters: queryParameters
         }, option);
     }
     /**
@@ -3504,7 +4379,9 @@ export class Client<RequestOption> {
             filter: { value: params.parameter.filter, explode: false },
             kind: { value: params.parameter.kind, explode: false },
             group: { value: params.parameter.group, explode: false },
-            resourceName: { value: params.parameter.resourceName, explode: false }
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            previous: { value: params.parameter.previous, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3528,7 +4405,8 @@ export class Client<RequestOption> {
             resourceName: { value: params.parameter.resourceName, explode: false },
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
-            kind: { value: params.parameter.kind, explode: false }
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3554,7 +4432,8 @@ export class Client<RequestOption> {
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
             kind: { value: params.parameter.kind, explode: false },
-            patchType: { value: params.parameter.patchType, explode: false }
+            patchType: { value: params.parameter.patchType, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "POST",
@@ -3581,7 +4460,8 @@ export class Client<RequestOption> {
             group: { value: params.parameter.group, explode: false },
             kind: { value: params.parameter.kind, explode: false },
             force: { value: params.parameter.force, explode: false },
-            orphan: { value: params.parameter.orphan, explode: false }
+            orphan: { value: params.parameter.orphan, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "DELETE",
@@ -3605,7 +4485,8 @@ export class Client<RequestOption> {
             resourceName: { value: params.parameter.resourceName, explode: false },
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
-            kind: { value: params.parameter.kind, explode: false }
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3630,13 +4511,39 @@ export class Client<RequestOption> {
             resourceName: { value: params.parameter.resourceName, explode: false },
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
-            kind: { value: params.parameter.kind, explode: false }
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
             requestBody: params.requestBody,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * ListResourceLinks returns the list of all resource deep links
+     * operationId: ApplicationService_ListResourceLinks
+     * Request URI: /api/v1/applications/{name}/resource/links
+     */
+    public async ApplicationService_ListResourceLinks(params: Params$ApplicationService_ListResourceLinks, option?: RequestOption): Promise<Response$ApplicationService_ListResourceLinks$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/resource/links`;
+        const headers = {
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            namespace: { value: params.parameter.namespace, explode: false },
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            version: { value: params.parameter.version, explode: false },
+            group: { value: params.parameter.group, explode: false },
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers,
             queryParameters: queryParameters
         }, option);
     }
@@ -3650,10 +4557,14 @@ export class Client<RequestOption> {
         const headers = {
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "GET",
             url,
-            headers
+            headers,
+            queryParameters: queryParameters
         }, option);
     }
     /**
@@ -3686,7 +4597,8 @@ export class Client<RequestOption> {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            validate: { value: params.parameter.validate, explode: false }
+            validate: { value: params.parameter.validate, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "PUT",
@@ -3724,8 +4636,87 @@ export class Client<RequestOption> {
         const headers = {
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "GET",
+            url,
+            headers,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * List returns list of applicationset
+     * operationId: ApplicationSetService_List
+     * Request URI: /api/v1/applicationsets
+     */
+    public async ApplicationSetService_List(params: Params$ApplicationSetService_List, option?: RequestOption): Promise<Response$ApplicationSetService_List$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applicationsets`;
+        const headers = {
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            projects: { value: params.parameter.projects, explode: true },
+            selector: { value: params.parameter.selector, explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * Create creates an applicationset
+     * operationId: ApplicationSetService_Create
+     * Request URI: /api/v1/applicationsets
+     */
+    public async ApplicationSetService_Create(params: Params$ApplicationSetService_Create, option?: RequestOption): Promise<Response$ApplicationSetService_Create$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applicationsets`;
+        const headers = {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "POST",
+            url,
+            headers,
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * Get returns an applicationset by name
+     * operationId: ApplicationSetService_Get
+     * Request URI: /api/v1/applicationsets/{name}
+     */
+    public async ApplicationSetService_Get(params: Params$ApplicationSetService_Get, option?: RequestOption): Promise<Response$ApplicationSetService_Get$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applicationsets/${params.parameter.name}`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
+     * Delete deletes an application set
+     * operationId: ApplicationSetService_Delete
+     * Request URI: /api/v1/applicationsets/{name}
+     */
+    public async ApplicationSetService_Delete(params: Params$ApplicationSetService_Delete, option?: RequestOption): Promise<Response$ApplicationSetService_Delete$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applicationsets/${params.parameter.name}`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "DELETE",
             url,
             headers
         }, option);
@@ -3808,7 +4799,9 @@ export class Client<RequestOption> {
         };
         const queryParameters: QueryParameters = {
             server: { value: params.parameter.server, explode: false },
-            name: { value: params.parameter.name, explode: false }
+            name: { value: params.parameter.name, explode: false },
+            "id.type": { value: params.parameter["id.type"], explode: false },
+            "id.value": { value: params.parameter["id.value"], explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3840,18 +4833,41 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
+     * Get returns a cluster by server address
+     * operationId: ClusterService_Get
+     * Request URI: /api/v1/clusters/{id.value}
+     */
+    public async ClusterService_Get(params: Params$ClusterService_Get, option?: RequestOption): Promise<Response$ClusterService_Get$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}`;
+        const headers = {
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            server: { value: params.parameter.server, explode: false },
+            name: { value: params.parameter.name, explode: false },
+            "id.type": { value: params.parameter["id.type"], explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
      * Update updates a cluster
      * operationId: ClusterService_Update
-     * Request URI: /api/v1/clusters/{cluster.server}
+     * Request URI: /api/v1/clusters/{id.value}
      */
     public async ClusterService_Update(params: Params$ClusterService_Update, option?: RequestOption): Promise<Response$ClusterService_Update$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["cluster.server"]}`;
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            updatedFields: { value: params.parameter.updatedFields, explode: true }
+            updatedFields: { value: params.parameter.updatedFields, explode: true },
+            "id.type": { value: params.parameter["id.type"], explode: false }
         };
         return this.apiClient.request({
             httpMethod: "PUT",
@@ -3862,37 +4878,19 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
-     * Get returns a cluster by server address
-     * operationId: ClusterService_Get
-     * Request URI: /api/v1/clusters/{server}
-     */
-    public async ClusterService_Get(params: Params$ClusterService_Get, option?: RequestOption): Promise<Response$ClusterService_Get$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}`;
-        const headers = {
-            Accept: "application/json"
-        };
-        const queryParameters: QueryParameters = {
-            name: { value: params.parameter.name, explode: false }
-        };
-        return this.apiClient.request({
-            httpMethod: "GET",
-            url,
-            headers,
-            queryParameters: queryParameters
-        }, option);
-    }
-    /**
      * Delete deletes a cluster
      * operationId: ClusterService_Delete
-     * Request URI: /api/v1/clusters/{server}
+     * Request URI: /api/v1/clusters/{id.value}
      */
     public async ClusterService_Delete(params: Params$ClusterService_Delete, option?: RequestOption): Promise<Response$ClusterService_Delete$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}`;
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            name: { value: params.parameter.name, explode: false }
+            server: { value: params.parameter.server, explode: false },
+            name: { value: params.parameter.name, explode: false },
+            "id.type": { value: params.parameter["id.type"], explode: false }
         };
         return this.apiClient.request({
             httpMethod: "DELETE",
@@ -3904,10 +4902,10 @@ export class Client<RequestOption> {
     /**
      * InvalidateCache invalidates cluster cache
      * operationId: ClusterService_InvalidateCache
-     * Request URI: /api/v1/clusters/{server}/invalidate-cache
+     * Request URI: /api/v1/clusters/{id.value}/invalidate-cache
      */
     public async ClusterService_InvalidateCache(params: Params$ClusterService_InvalidateCache, option?: RequestOption): Promise<Response$ClusterService_InvalidateCache$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}/invalidate-cache`;
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}/invalidate-cache`;
         const headers = {
             Accept: "application/json"
         };
@@ -3920,10 +4918,10 @@ export class Client<RequestOption> {
     /**
      * RotateAuth rotates the bearer token used for a cluster
      * operationId: ClusterService_RotateAuth
-     * Request URI: /api/v1/clusters/{server}/rotate-auth
+     * Request URI: /api/v1/clusters/{id.value}/rotate-auth
      */
     public async ClusterService_RotateAuth(params: Params$ClusterService_RotateAuth, option?: RequestOption): Promise<Response$ClusterService_RotateAuth$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}/rotate-auth`;
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}/rotate-auth`;
         const headers = {
             Accept: "application/json"
         };
@@ -4012,6 +5010,54 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
+     * List returns list of services
+     * operationId: NotificationService_ListServices
+     * Request URI: /api/v1/notifications/services
+     */
+    public async NotificationService_ListServices(option?: RequestOption): Promise<Response$NotificationService_ListServices$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/notifications/services`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
+     * List returns list of templates
+     * operationId: NotificationService_ListTemplates
+     * Request URI: /api/v1/notifications/templates
+     */
+    public async NotificationService_ListTemplates(option?: RequestOption): Promise<Response$NotificationService_ListTemplates$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/notifications/templates`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
+     * List returns list of triggers
+     * operationId: NotificationService_ListTriggers
+     * Request URI: /api/v1/notifications/triggers
+     */
+    public async NotificationService_ListTriggers(option?: RequestOption): Promise<Response$NotificationService_ListTriggers$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/notifications/triggers`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
      * List returns list of projects
      * operationId: ProjectService_List
      * Request URI: /api/v1/projects
@@ -4082,6 +5128,22 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
+     * GetDetailedProject returns a project that include project, global project and scoped resources by name
+     * operationId: ProjectService_GetDetailedProject
+     * Request URI: /api/v1/projects/{name}/detailed
+     */
+    public async ProjectService_GetDetailedProject(params: Params$ProjectService_GetDetailedProject, option?: RequestOption): Promise<Response$ProjectService_GetDetailedProject$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/detailed`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
      * ListEvents returns a list of project events
      * operationId: ProjectService_ListEvents
      * Request URI: /api/v1/projects/{name}/events
@@ -4104,6 +5166,22 @@ export class Client<RequestOption> {
      */
     public async ProjectService_GetGlobalProjects(params: Params$ProjectService_GetGlobalProjects, option?: RequestOption): Promise<Response$ProjectService_GetGlobalProjects$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/globalprojects`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
+     * ListLinks returns all deep links for the particular project
+     * operationId: ProjectService_ListLinks
+     * Request URI: /api/v1/projects/{name}/links
+     */
+    public async ProjectService_ListLinks(params: Params$ProjectService_ListLinks, option?: RequestOption): Promise<Response$ProjectService_ListLinks$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/links`;
         const headers = {
             Accept: "application/json"
         };
@@ -4374,7 +5452,9 @@ export class Client<RequestOption> {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            revision: { value: params.parameter.revision, explode: false }
+            revision: { value: params.parameter.revision, explode: false },
+            appName: { value: params.parameter.appName, explode: false },
+            appProject: { value: params.parameter.appProject, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -4447,7 +5527,10 @@ export class Client<RequestOption> {
             githubAppID: { value: params.parameter.githubAppID, explode: false },
             githubAppInstallationID: { value: params.parameter.githubAppInstallationID, explode: false },
             githubAppEnterpriseBaseUrl: { value: params.parameter.githubAppEnterpriseBaseUrl, explode: false },
-            proxy: { value: params.parameter.proxy, explode: false }
+            proxy: { value: params.parameter.proxy, explode: false },
+            project: { value: params.parameter.project, explode: false },
+            gcpServiceAccountKey: { value: params.parameter.gcpServiceAccountKey, explode: false },
+            forceHttpBasicAuth: { value: params.parameter.forceHttpBasicAuth, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "POST",
@@ -4542,6 +5625,22 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
+     * Get returns Argo CD plugins
+     * operationId: SettingsService_GetPlugins
+     * Request URI: /api/v1/settings/plugins
+     */
+    public async SettingsService_GetPlugins(option?: RequestOption): Promise<Response$SettingsService_GetPlugins$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/settings/plugins`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
      * Watch returns stream of application change events
      * operationId: ApplicationService_Watch
      * Request URI: /api/v1/stream/applications
@@ -4554,10 +5653,12 @@ export class Client<RequestOption> {
         const queryParameters: QueryParameters = {
             name: { value: params.parameter.name, explode: false },
             refresh: { value: params.parameter.refresh, explode: false },
-            project: { value: params.parameter.project, explode: true },
+            projects: { value: params.parameter.projects, explode: true },
             resourceVersion: { value: params.parameter.resourceVersion, explode: false },
             selector: { value: params.parameter.selector, explode: false },
-            repo: { value: params.parameter.repo, explode: false }
+            repo: { value: params.parameter.repo, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false },
+            project: { value: params.parameter.project, explode: true }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -4581,7 +5682,8 @@ export class Client<RequestOption> {
             name: { value: params.parameter.name, explode: false },
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
-            kind: { value: params.parameter.kind, explode: false }
+            kind: { value: params.parameter.kind, explode: false },
+            appNamespace: { value: params.parameter.appNamespace, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
