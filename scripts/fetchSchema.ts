@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import fetch from "node-fetch";
-import * as Shell from "./tools/shell";
-import rimraf from "rimraf";
+import { execa } from "execa";
+import { rimraf } from "rimraf";
 import { versions, outputDir } from "./config";
 
 export const getArgoCdSwaggerSchema = async (version: string): Promise<any> => {
@@ -16,7 +16,10 @@ export const getArgoCdSwaggerSchema = async (version: string): Promise<any> => {
 };
 
 const convert = async (inputFilename: string, outputFilename: string): Promise<void> => {
-  await Shell.shell(`swagger2openapi ${inputFilename} -o ${outputFilename}`);
+  await execa(`pnpm exec swagger2openapi ${inputFilename} -o ${outputFilename}`, {
+    stdio: ["pipe", "pipe", "inherit"],
+    shell: true,
+  });
 };
 
 const main = async () => {

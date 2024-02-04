@@ -11,7 +11,7 @@ yarn add @himenon/argocd-typescript-openapi
 ```ts
 import * as fs from "fs";
 import * as yaml from "js-yaml"; // pnpm i -D js-yaml @types/js-yaml
-import type { Schemas } from "@himenon/argocd-typescript-openapi/v1.22.3";
+import type { Schemas } from "@himenon/argocd-typescript-openapi/dist/v2.9.6";
 ```
 
 ## Build

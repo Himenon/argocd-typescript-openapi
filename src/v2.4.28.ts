@@ -68,6 +68,7 @@ export namespace Schemas {
         retryStrategy?: Schemas.v1alpha1RetryStrategy;
         revision?: string;
         strategy?: Schemas.v1alpha1SyncStrategy;
+        syncOptions?: Schemas.applicationSyncOptions;
     }
     export interface applicationApplicationSyncWindow {
         duration?: string;
@@ -83,7 +84,9 @@ export namespace Schemas {
     export interface applicationLogEntry {
         content?: string;
         last?: boolean;
+        podName?: string;
         timeStamp?: Schemas.v1Time;
+        timeStampStr?: string;
     }
     export interface applicationManagedResourcesResponse {
         items?: Schemas.v1alpha1ResourceDiff[];
@@ -93,10 +96,19 @@ export namespace Schemas {
     export interface applicationResourceActionsListResponse {
         actions?: Schemas.v1alpha1ResourceAction[];
     }
+    export interface applicationSyncOptions {
+        items?: string[];
+    }
     export interface applicationv1alpha1EnvEntry {
-        /** the name, usually uppercase */
+        /** Name is the name of the variable, usually expressed in uppercase */
         name?: string;
-        /** the value */
+        /** Value is the value of the variable */
+        value?: string;
+    }
+    export interface clusterClusterID {
+        /** type is the type of the specified cluster identifier ( "server" - default, "name" ) */
+        type?: string;
+        /** value holds the cluster server URL or cluster name */
         value?: string;
     }
     export interface clusterClusterResponse {
@@ -113,6 +125,10 @@ export namespace Schemas {
         trackingID?: string;
     }
     export interface clusterHelp {
+        /** the URLs for downloading argocd binaries */
+        binaryUrls?: {
+            [key: string]: string;
+        };
         /** the text for getting chat help, defaults to "Chat now!" */
         chatText?: string;
         /** the URL for getting chat help, this will typically be your Slack channel for support */
@@ -136,16 +152,24 @@ export namespace Schemas {
         appLabelKey?: string;
         configManagementPlugins?: Schemas.v1alpha1ConfigManagementPlugin[];
         dexConfig?: Schemas.clusterDexConfig;
+        execEnabled?: boolean;
         googleAnalytics?: Schemas.clusterGoogleAnalyticsConfig;
         help?: Schemas.clusterHelp;
         kustomizeOptions?: Schemas.v1alpha1KustomizeOptions;
         kustomizeVersions?: string[];
         oidcConfig?: Schemas.clusterOIDCConfig;
+        passwordPattern?: string;
         plugins?: Schemas.clusterPlugin[];
         resourceOverrides?: {
             [key: string]: Schemas.v1alpha1ResourceOverride;
         };
         statusBadgeEnabled?: boolean;
+        statusBadgeRootUrl?: string;
+        trackingMethod?: string;
+        uiBannerContent?: string;
+        uiBannerPermanent?: boolean;
+        uiBannerPosition?: string;
+        uiBannerURL?: string;
         uiCssURL?: string;
         url?: string;
         userLoginsDisabled?: boolean;
@@ -161,6 +185,12 @@ export namespace Schemas {
         essential?: boolean;
         value?: string;
         values?: string[];
+    }
+    export interface projectDetailedProjectsResponse {
+        clusters?: Schemas.v1alpha1Cluster[];
+        globalProjects?: Schemas.v1alpha1AppProject[];
+        project?: Schemas.v1alpha1AppProject;
+        repositories?: Schemas.v1alpha1Repository[];
     }
     export interface projectEmptyResponse {
     }
@@ -220,26 +250,6 @@ export namespace Schemas {
     export interface repositoryHelmChartsResponse {
         items?: Schemas.repositoryHelmChart[];
     }
-    export interface repositoryKsonnetAppSpec {
-        environments?: {
-            [key: string]: Schemas.repositoryKsonnetEnvironment;
-        };
-        name?: string;
-        parameters?: Schemas.v1alpha1KsonnetParameter[];
-    }
-    export interface repositoryKsonnetEnvironment {
-        destination?: Schemas.repositoryKsonnetEnvironmentDestination;
-        /** KubernetesVersion is the kubernetes version the targeted cluster is running on. */
-        k8sVersion?: string;
-        /** Name is the user defined name of an environment */
-        name?: string;
-    }
-    export interface repositoryKsonnetEnvironmentDestination {
-        /** Namespace is the namespace of the Kubernetes server that targets should be deployed to */
-        namespace?: string;
-        /** Server is the Kubernetes server that the cluster is running on. */
-        server?: string;
-    }
     export interface repositoryKustomizeAppSpec {
         /** images is a list of available images. */
         images?: string[];
@@ -259,12 +269,13 @@ export namespace Schemas {
         tags?: string[];
     }
     export interface repositoryRepoAppDetailsQuery {
+        appName?: string;
+        appProject?: string;
         source?: Schemas.v1alpha1ApplicationSource;
     }
     export interface repositoryRepoAppDetailsResponse {
         directory?: Schemas.repositoryDirectoryAppSpec;
         helm?: Schemas.repositoryHelmAppSpec;
-        ksonnet?: Schemas.repositoryKsonnetAppSpec;
         kustomize?: Schemas.repositoryKustomizeAppSpec;
         type?: string;
     }
@@ -272,6 +283,12 @@ export namespace Schemas {
         items?: Schemas.repositoryAppInfo[];
     }
     export interface repositoryRepoResponse {
+    }
+    export interface runtimeError {
+        code?: number;
+        details?: Schemas.protobufAny[];
+        error?: string;
+        message?: string;
     }
     export interface runtimeStreamError {
         details?: Schemas.protobufAny[];
@@ -296,7 +313,14 @@ export namespace Schemas {
     export interface sessionSessionResponse {
         token?: string;
     }
-    /** Event is a report of an event somewhere in the cluster. */
+    /**
+     * Event is a report of an event somewhere in the cluster.  Events
+     * have a limited retention time and triggers and messages may evolve
+     * with time.  Event consumers should not rely on the timing of an event
+     * with a given Reason reflecting a consistent underlying trigger, or the
+     * continued existence of events with that Reason.  Events should be
+     * treated as informative, best-effort, supplemental data.
+     */
     export interface v1Event {
         /**
          * What action was taken/failed regarding to the Regarding object.
@@ -463,6 +487,13 @@ export namespace Schemas {
          * +optional
          */
         ip?: string;
+        /**
+         * Ports is a list of records of service ports
+         * If used, every port defined in the service should have an entry in it
+         * +listType=atomic
+         * +optional
+         */
+        ports?: Schemas.v1PortStatus[];
     }
     /**
      * ManagedFieldsEntry is a workflow-id, a FieldSet and the group version of the resource
@@ -489,6 +520,16 @@ export namespace Schemas {
          * The only valid values for this field are 'Apply' and 'Update'.
          */
         operation?: string;
+        /**
+         * Subresource is the name of the subresource used to update that object, or
+         * empty string if the object was updated through the main resource. The
+         * value of this field is used to distinguish between managers, even if they
+         * share the same name. For example, a status update will be distinct from a
+         * regular update using the same manager name.
+         * Note that the APIVersion field is not related to the Subresource field and
+         * it always corresponds to the version of the main resource.
+         */
+        subresource?: string;
         time?: Schemas.v1Time;
     }
     /**
@@ -512,6 +553,37 @@ export namespace Schemas {
          * 9999-12-31T23:59:59Z inclusive.
          */
         seconds?: string;
+    }
+    /** NodeSystemInfo is a set of ids/uuids to uniquely identify the node. */
+    export interface v1NodeSystemInfo {
+        /** The Architecture reported by the node */
+        architecture?: string;
+        /** Boot ID reported by the node. */
+        bootID?: string;
+        /** ContainerRuntime Version reported by the node through runtime remote API (e.g. docker://1.5.0). */
+        containerRuntimeVersion?: string;
+        /** Kernel Version reported by the node from 'uname -r' (e.g. 3.16.0-0.bpo.4-amd64). */
+        kernelVersion?: string;
+        /** KubeProxy Version reported by the node. */
+        kubeProxyVersion?: string;
+        /** Kubelet Version reported by the node. */
+        kubeletVersion?: string;
+        /**
+         * MachineID reported by the node. For unique machine identification
+         * in the cluster this field is preferred. Learn more from man(5)
+         * machine-id: http://man7.org/linux/man-pages/man5/machine-id.5.html
+         */
+        machineID?: string;
+        /** The Operating System reported by the node */
+        operatingSystem?: string;
+        /** OS Image reported by the node from /etc/os-release (e.g. Debian GNU/Linux 7 (wheezy)). */
+        osImage?: string;
+        /**
+         * SystemUUID reported by the node. For unique machine identification
+         * MachineID is preferred. This field is specific to Red Hat hosts
+         * https://access.redhat.com/documentation/en-us/red_hat_subscription_management/1/html/rhsm/uuid
+         */
+        systemUUID?: string;
     }
     /**
      * ObjectMeta is metadata that all persisted resources must have, which includes all objects
@@ -728,11 +800,6 @@ export namespace Schemas {
          */
         uid?: string;
     }
-    /**
-     * OwnerReference contains enough information to let you identify an owning
-     * object. An owning object must be in the same namespace as the dependent, or
-     * be cluster-scoped, so there is no namespace field.
-     */
     export interface v1OwnerReference {
         /** API version of the referent. */
         apiVersion?: string;
@@ -766,6 +833,30 @@ export namespace Schemas {
          * More info: http://kubernetes.io/docs/user-guide/identifiers#uids
          */
         uid?: string;
+    }
+    export interface v1PortStatus {
+        /**
+         * Error is to record the problem with the service port
+         * The format of the error shall comply with the following rules:
+         * - built-in error values shall be specified in this file and those shall use
+         *   CamelCase names
+         * - cloud provider specific error values must have names that comply with the
+         *   format foo.example.com/CamelCase.
+         * ---
+         * The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+         * +optional
+         * +kubebuilder:validation:Required
+         * +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)\*\\/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+         * +kubebuilder:validation:MaxLength=316
+         */
+        error?: string;
+        /** Port is the port number of the service port of which status is recorded here */
+        port?: number;
+        /**
+         * Protocol is the protocol of the service port of which status is recorded here
+         * The supported values are: "TCP", "UDP", "SCTP"
+         */
+        protocol?: string;
     }
     /**
      * Time is a wrapper around time.Time which supports correct
@@ -822,7 +913,7 @@ export namespace Schemas {
         orphanedResources?: Schemas.v1alpha1OrphanedResourcesMonitorSettings;
         /** Roles are user defined RBAC roles associated with this project */
         roles?: Schemas.v1alpha1ProjectRole[];
-        /** List of PGP key IDs that commits to be synced to must be signed with */
+        /** SignatureKeys contains a list of PGP key IDs that commits in Git must be signed with in order to be allowed for sync */
         signatureKeys?: Schemas.v1alpha1SignatureKey[];
         /** SourceRepos contains list of repository URLs which can be used for deployment */
         sourceRepos?: string[];
@@ -830,6 +921,7 @@ export namespace Schemas {
         syncWindows?: Schemas.v1alpha1SyncWindow[];
     }
     export interface v1alpha1AppProjectStatus {
+        /** JWTTokensByRole contains a list of JWT tokens issued for a given role */
         jwtTokensByRole?: {
             [key: string]: Schemas.v1alpha1JWTTokens;
         };
@@ -848,53 +940,65 @@ export namespace Schemas {
         type?: string;
     }
     export interface v1alpha1ApplicationDestination {
-        /** Name of the destination cluster which can be used instead of server (url) field */
+        /** Name is an alternate way of specifying the target cluster by its symbolic name */
         name?: string;
-        /** Namespace overrides the environment namespace value in the ksonnet app.yaml */
+        /**
+         * Namespace specifies the target namespace for the application's resources.
+         * The namespace will only be set for namespace-scoped resources that have not set a value for .metadata.namespace
+         */
         namespace?: string;
-        /** Server overrides the environment server value in the ksonnet app.yaml */
+        /** Server specifies the URL of the target cluster and must be set to the Kubernetes control plane API */
         server?: string;
     }
     export interface v1alpha1ApplicationList {
         items?: Schemas.v1alpha1Application[];
         metadata?: Schemas.v1ListMeta;
     }
-    /** ApplicationSource contains information about github repository, path within repository and target application environment. */
     export interface v1alpha1ApplicationSource {
-        /** Chart is a Helm chart name */
+        /** Chart is a Helm chart name, and must be specified for applications sourced from a Helm repo. */
         chart?: string;
         directory?: Schemas.v1alpha1ApplicationSourceDirectory;
         helm?: Schemas.v1alpha1ApplicationSourceHelm;
-        ksonnet?: Schemas.v1alpha1ApplicationSourceKsonnet;
         kustomize?: Schemas.v1alpha1ApplicationSourceKustomize;
-        /** Path is a directory path within the Git repository */
+        /** Path is a directory path within the Git repository, and is only valid for applications sourced from Git. */
         path?: string;
         plugin?: Schemas.v1alpha1ApplicationSourcePlugin;
-        /** RepoURL is the repository URL of the application manifests */
+        /** RepoURL is the URL to the repository (Git or Helm) that contains the application manifests */
         repoURL?: string;
         /**
-         * TargetRevision defines the commit, tag, or branch in which to sync the application to.
-         * If omitted, will sync to HEAD
+         * TargetRevision defines the revision of the source to sync the application to.
+         * In case of Git, this can be commit, tag, or branch. If omitted, will equal to HEAD.
+         * In case of Helm, this is a semver tag for the Chart's version.
          */
         targetRevision?: string;
     }
     export interface v1alpha1ApplicationSourceDirectory {
+        /** Exclude contains a glob pattern to match paths against that should be explicitly excluded from being used during manifest generation */
         exclude?: string;
+        /** Include contains a glob pattern to match paths against that should be explicitly included during manifest generation */
+        include?: string;
         jsonnet?: Schemas.v1alpha1ApplicationSourceJsonnet;
+        /** Recurse specifies whether to scan a directory recursively for manifests */
         recurse?: boolean;
     }
     export interface v1alpha1ApplicationSourceHelm {
         /** FileParameters are file parameters to the helm template */
         fileParameters?: Schemas.v1alpha1HelmFileParameter[];
-        /** Parameters are parameters to the helm template */
+        /** IgnoreMissingValueFiles prevents helm template from failing when valueFiles do not exist locally by not appending them to helm template --values */
+        ignoreMissingValueFiles?: boolean;
+        /** Parameters is a list of Helm parameters which are passed to the helm template command upon manifest generation */
         parameters?: Schemas.v1alpha1HelmParameter[];
-        /** The Helm release name. If omitted it will use the application name */
+        /** PassCredentials pass credentials to all domains (Helm's --pass-credentials) */
+        passCredentials?: boolean;
+        /** ReleaseName is the Helm release name to use. If omitted it will use the application name */
         releaseName?: string;
+        /** SkipCrds skips custom resource definition installation step (Helm's --skip-crds) */
+        skipCrds?: boolean;
         /** ValuesFiles is a list of Helm value files to use when generating a template */
         valueFiles?: string[];
-        /** Values is Helm values, typically defined as a block */
+        /** Values specifies Helm values to be passed to helm template, typically defined as a block */
         values?: string;
-        /** Version is the Helm version to use for templating with */
+        /** Version is the Helm version to use for templating ("3") */
         version?: string;
     }
     export interface v1alpha1ApplicationSourceJsonnet {
@@ -905,28 +1009,26 @@ export namespace Schemas {
         /** TLAS is a list of Jsonnet Top-level Arguments */
         tlas?: Schemas.v1alpha1JsonnetVar[];
     }
-    export interface v1alpha1ApplicationSourceKsonnet {
-        /** Environment is a ksonnet application environment name */
-        environment?: string;
-        /** Parameters are a list of ksonnet component parameter override values */
-        parameters?: Schemas.v1alpha1KsonnetParameter[];
-    }
     export interface v1alpha1ApplicationSourceKustomize {
-        /** CommonAnnotations adds additional kustomize commonAnnotations */
+        /** CommonAnnotations is a list of additional annotations to add to rendered manifests */
         commonAnnotations?: {
             [key: string]: string;
         };
-        /** CommonLabels adds additional kustomize commonLabels */
+        /** CommonLabels is a list of additional labels to add to rendered manifests */
         commonLabels?: {
             [key: string]: string;
         };
-        /** Images are kustomize image overrides */
+        /** ForceCommonAnnotations specifies whether to force applying common annotations to resources for Kustomize apps */
+        forceCommonAnnotations?: boolean;
+        /** ForceCommonLabels specifies whether to force applying common labels to resources for Kustomize apps */
+        forceCommonLabels?: boolean;
+        /** Images is a list of Kustomize image override specifications */
         images?: string[];
-        /** NamePrefix is a prefix appended to resources for kustomize apps */
+        /** NamePrefix is a prefix appended to resources for Kustomize apps */
         namePrefix?: string;
-        /** NameSuffix is a suffix appended to resources for kustomize apps */
+        /** NameSuffix is a suffix appended to resources for Kustomize apps */
         nameSuffix?: string;
-        /** Version contains optional Kustomize version */
+        /** Version controls which version of Kustomize to use for rendering manifests */
         version?: string;
     }
     export interface v1alpha1ApplicationSourcePlugin {
@@ -936,14 +1038,17 @@ export namespace Schemas {
     /** ApplicationSpec represents desired application state. Contains link to repository with application definition and additional parameters link definition revision. */
     export interface v1alpha1ApplicationSpec {
         destination?: Schemas.v1alpha1ApplicationDestination;
-        /** IgnoreDifferences controls resources fields which should be ignored during comparison */
+        /** IgnoreDifferences is a list of resources and their fields which should be ignored during comparison */
         ignoreDifferences?: Schemas.v1alpha1ResourceIgnoreDifferences[];
-        /** Infos contains a list of useful information (URLs, email addresses, and plain text) that relates to the application */
+        /** Info contains a list of information (URLs, email addresses, and plain text) that relates to the application */
         info?: Schemas.v1alpha1Info[];
-        /** Project is a application project name. Empty name means that application belongs to 'default' project. */
+        /**
+         * Project is a reference to the project this application belongs to.
+         * The empty string means that application belongs to the 'default' project.
+         */
         project?: string;
         /**
-         * This limits this number of items kept in the apps revision history.
+         * RevisionHistoryLimit limits the number of items kept in the application's revision history, which is used for informational purposes as well as for rollbacks to previous versions.
          * This should only be changed in exceptional circumstances.
          * Setting to zero will store no history. This will reduce storage used.
          * Increasing will increase the space used to store the history, so we do not recommend increasing it.
@@ -954,13 +1059,17 @@ export namespace Schemas {
         syncPolicy?: Schemas.v1alpha1SyncPolicy;
     }
     export interface v1alpha1ApplicationStatus {
+        /** Conditions is a list of currently observed application conditions */
         conditions?: Schemas.v1alpha1ApplicationCondition[];
         health?: Schemas.v1alpha1HealthStatus;
+        /** History contains information about the application's sync history */
         history?: Schemas.v1alpha1RevisionHistory[];
         observedAt?: Schemas.v1Time;
         operationState?: Schemas.v1alpha1OperationState;
         reconciledAt?: Schemas.v1Time;
+        /** Resources is a list of Kubernetes resources managed by this application */
         resources?: Schemas.v1alpha1ResourceStatus[];
+        /** SourceType specifies the type of this application */
         sourceType?: string;
         summary?: Schemas.v1alpha1ApplicationSummary;
         sync?: Schemas.v1alpha1SyncStatus;
@@ -972,6 +1081,8 @@ export namespace Schemas {
         images?: string[];
     }
     export interface v1alpha1ApplicationTree {
+        /** Hosts holds list of Kubernetes nodes that run application related pods */
+        hosts?: Schemas.v1alpha1HostInfo[];
         /** Nodes contains list of nodes which either directly managed by the application and children of directly managed nodes. */
         nodes?: Schemas.v1alpha1ResourceNode[];
         /** OrphanedNodes contains if or orphaned nodes: nodes which are not managed by the app but in the same namespace. List is populated only if orphaned resources enabled in app project. */
@@ -991,13 +1102,25 @@ export namespace Schemas {
         maxDuration?: string;
     }
     export interface v1alpha1Cluster {
+        /** Annotations for cluster secret metadata */
+        annotations?: {
+            [key: string]: string;
+        };
+        /** Indicates if cluster level resources should be managed. This setting is used only if cluster is connected in a namespaced mode. */
+        clusterResources?: boolean;
         config?: Schemas.v1alpha1ClusterConfig;
         connectionState?: Schemas.v1alpha1ConnectionState;
         info?: Schemas.v1alpha1ClusterInfo;
+        /** Labels for cluster secret metadata */
+        labels?: {
+            [key: string]: string;
+        };
         /** Name of the cluster. If omitted, will use the server address */
         name?: string;
-        /** Holds list of namespaces which are accessible in that cluster. Cluster level resources would be ignored if namespace list is not empty. */
+        /** Holds list of namespaces which are accessible in that cluster. Cluster level resources will be ignored if namespace list is not empty. */
         namespaces?: string[];
+        /** Reference between project and cluster that allow you automatically to be added as item inside Destinations project entity */
+        project?: string;
         refreshRequestedAt?: Schemas.v1Time;
         /** Server is the API server URL of the Kubernetes cluster */
         server?: string;
@@ -1035,9 +1158,13 @@ export namespace Schemas {
         username?: string;
     }
     export interface v1alpha1ClusterInfo {
+        /** APIVersions contains list of API versions supported by the cluster */
+        apiVersions?: string[];
+        /** ApplicationsCount is the number of applications managed by Argo CD on the cluster */
         applicationsCount?: string;
         cacheInfo?: Schemas.v1alpha1ClusterCacheInfo;
         connectionState?: Schemas.v1alpha1ConnectionState;
+        /** ServerVersion contains information about the Kubernetes version of the cluster */
         serverVersion?: string;
     }
     /** ClusterList is a collection of Clusters. */
@@ -1056,11 +1183,14 @@ export namespace Schemas {
     export interface v1alpha1ConfigManagementPlugin {
         generate?: Schemas.v1alpha1Command;
         init?: Schemas.v1alpha1Command;
+        lockRepo?: boolean;
         name?: string;
     }
     export interface v1alpha1ConnectionState {
         attemptedAt?: Schemas.v1Time;
+        /** Message contains human readable information about the connection status */
         message?: string;
+        /** Status contains the current status indicator for the connection */
         status?: string;
     }
     export interface v1alpha1ExecProviderConfig {
@@ -1078,17 +1208,17 @@ export namespace Schemas {
         installHint?: string;
     }
     export interface v1alpha1GnuPGPublicKey {
-        /** Fingerprint of the key */
+        /** Fingerprint is the fingerprint of the key */
         fingerprint?: string;
-        /** Key data */
+        /** KeyData holds the raw key data, in base64 encoded format */
         keyData?: string;
-        /** KeyID in hexadecimal string format */
+        /** KeyID specifies the key ID, in hexadecimal string format */
         keyID?: string;
-        /** Owner identification */
+        /** Owner holds the owner identification, e.g. a name and e-mail address */
         owner?: string;
-        /** Key sub type (e.g. rsa4096) */
+        /** SubType holds the key's sub type (e.g. rsa4096) */
         subType?: string;
-        /** Trust level */
+        /** Trust holds the level of trust assigned to this key */
         trust?: string;
     }
     export interface v1alpha1GnuPGPublicKeyList {
@@ -1096,22 +1226,35 @@ export namespace Schemas {
         metadata?: Schemas.v1ListMeta;
     }
     export interface v1alpha1HealthStatus {
+        /** Message is a human-readable informational message describing the health status */
         message?: string;
+        /** Status holds the status code of the application or resource */
         status?: string;
     }
     export interface v1alpha1HelmFileParameter {
-        /** Name is the name of the helm parameter */
+        /** Name is the name of the Helm parameter */
         name?: string;
-        /** Path is the path value for the helm parameter */
+        /** Path is the path to the file containing the values for the Helm parameter */
         path?: string;
     }
     export interface v1alpha1HelmParameter {
         /** ForceString determines whether to tell Helm to interpret booleans and numbers as strings */
         forceString?: boolean;
-        /** Name is the name of the helm parameter */
+        /** Name is the name of the Helm parameter */
         name?: string;
-        /** Value is the value for the helm parameter */
+        /** Value is the value for the Helm parameter */
         value?: string;
+    }
+    export interface v1alpha1HostInfo {
+        name?: string;
+        resourcesInfo?: Schemas.v1alpha1HostResourceInfo[];
+        systemInfo?: Schemas.v1NodeSystemInfo;
+    }
+    export interface v1alpha1HostResourceInfo {
+        capacity?: string;
+        requestedByApp?: string;
+        requestedByNeighbors?: string;
+        resourceName?: string;
     }
     export interface v1alpha1Info {
         name?: string;
@@ -1140,19 +1283,14 @@ export namespace Schemas {
         field?: string;
         type?: string;
     }
-    export interface v1alpha1KsonnetParameter {
-        component?: string;
-        name?: string;
-        value?: string;
-    }
     export interface v1alpha1KustomizeOptions {
         /** BinaryPath holds optional path to kustomize binary */
         binaryPath?: string;
         /** BuildOptions is a string of build parameters to use when calling `kustomize build` */
         buildOptions?: string;
     }
-    /** Operation contains requested operation parameters. */
     export interface v1alpha1Operation {
+        /** Info is a list of informational items for this operation */
         info?: Schemas.v1alpha1Info[];
         initiatedBy?: Schemas.v1alpha1OperationInitiator;
         retry?: Schemas.v1alpha1RetryStrategy;
@@ -1161,13 +1299,12 @@ export namespace Schemas {
     export interface v1alpha1OperationInitiator {
         /** Automated is set to true if operation was initiated automatically by the application controller. */
         automated?: boolean;
-        /** Name of a user who started operation. */
+        /** Username contains the name of a user who started operation */
         username?: string;
     }
-    /** OperationState contains information about state of currently performing operation on application. */
     export interface v1alpha1OperationState {
         finishedAt?: Schemas.v1Time;
-        /** Message hold any pertinent messages when attempting to perform operation (typically errors). */
+        /** Message holds any pertinent messages when attempting to perform operation (typically errors). */
         message?: string;
         operation?: Schemas.v1alpha1Operation;
         /** Phase is the current phase of the operation */
@@ -1183,12 +1320,21 @@ export namespace Schemas {
         name?: string;
     }
     export interface v1alpha1OrphanedResourcesMonitorSettings {
+        /** Ignore contains a list of resources that are to be excluded from orphaned resources monitoring */
         ignore?: Schemas.v1alpha1OrphanedResourceKey[];
         /** Warn indicates if warning condition should be created for apps which have orphaned resources */
         warn?: boolean;
     }
     export interface v1alpha1OverrideIgnoreDiff {
+        /** JSONPointers is a JSON path list following the format defined in RFC4627 (https://datatracker.ietf.org/doc/html/rfc6902#section-3) */
         jSONPointers?: string[];
+        /** JQPathExpressions is a JQ path list that will be evaludated during the diff process */
+        jqPathExpressions?: string[];
+        /**
+         * ManagedFieldsManagers is a list of trusted managers. Fields mutated by those managers will take precedence over the
+         * desired state defined in the SCM and won't be displayed in diffs
+         */
+        managedFieldsManagers?: string[];
     }
     export interface v1alpha1ProjectRole {
         /** Description is a description of the role */
@@ -1199,18 +1345,30 @@ export namespace Schemas {
         jwtTokens?: Schemas.v1alpha1JWTToken[];
         /** Name is a name for this role */
         name?: string;
-        /** Policies Stores a list of casbin formated strings that define access policies for the role in the project */
+        /** Policies Stores a list of casbin formatted strings that define access policies for the role in the project */
         policies?: string[];
     }
     export interface v1alpha1RepoCreds {
+        /** EnableOCI specifies whether helm-oci support should be enabled for this repo */
+        enableOCI?: boolean;
+        /** GithubAppEnterpriseBaseURL specifies the GitHub API URL for GitHub app authentication. If empty will default to https://api.github.com */
+        githubAppEnterpriseBaseUrl?: string;
+        /** GithubAppId specifies the Github App ID of the app used to access the repo for GitHub app authentication */
+        githubAppID?: string;
+        /** GithubAppInstallationId specifies the ID of the installed GitHub App for GitHub app authentication */
+        githubAppInstallationID?: string;
+        /** GithubAppPrivateKey specifies the private key PEM data for authentication via GitHub app */
+        githubAppPrivateKey?: string;
         /** Password for authenticating at the repo server */
         password?: string;
-        /** SSH private key data for authenticating at the repo server (only Git repos) */
+        /** SSHPrivateKey contains the private key data for authenticating at the repo server using SSH (only Git repos) */
         sshPrivateKey?: string;
-        /** TLS client cert data for authenticating at the repo server */
+        /** TLSClientCertData specifies the TLS client cert data for authenticating at the repo server */
         tlsClientCertData?: string;
-        /** TLS client cert key for authenticating at the repo server */
+        /** TLSClientCertKey specifies the TLS client cert key for authenticating at the repo server */
         tlsClientCertKey?: string;
+        /** Type specifies the type of the repoCreds. Can be either "git" or "helm. "git" is assumed if empty or absent. */
+        type?: string;
         /** URL is the URL that this credentials matches to */
         url?: string;
         /** Username for authenticating at the repo server */
@@ -1223,49 +1381,58 @@ export namespace Schemas {
     }
     export interface v1alpha1Repository {
         connectionState?: Schemas.v1alpha1ConnectionState;
-        /** Whether git-lfs support should be enabled for this repo */
+        /** EnableLFS specifies whether git-lfs support should be enabled for this repo. Only valid for Git repositories. */
         enableLfs?: boolean;
-        /** Whether helm-oci support should be enabled for this repo */
+        /** EnableOCI specifies whether helm-oci support should be enabled for this repo */
         enableOCI?: boolean;
+        /** GithubAppEnterpriseBaseURL specifies the base URL of GitHub Enterprise installation. If empty will default to https://api.github.com */
+        githubAppEnterpriseBaseUrl?: string;
+        /** GithubAppId specifies the ID of the GitHub app used to access the repo */
+        githubAppID?: string;
+        /** GithubAppInstallationId specifies the installation ID of the GitHub App used to access the repo */
+        githubAppInstallationID?: string;
+        /** Github App Private Key PEM data */
+        githubAppPrivateKey?: string;
         /** Whether credentials were inherited from a credential set */
         inheritedCreds?: boolean;
-        /** Whether the repo is insecure */
+        /** Insecure specifies whether the connection to the repository ignores any errors when verifying TLS certificates or SSH host keys */
         insecure?: boolean;
         /**
          * InsecureIgnoreHostKey should not be used anymore, Insecure is favoured
-         * only for Git repos
+         * Used only for Git repos
          */
         insecureIgnoreHostKey?: boolean;
-        /** only for Helm repos */
+        /** Name specifies a name to be used for this repo. Only used with Helm repos */
         name?: string;
-        /** Password for authenticating at the repo server */
+        /** Password contains the password or PAT used for authenticating at the remote repository */
         password?: string;
-        /** URL of the repo */
+        /** Reference between project and repository that allow you automatically to be added as item inside SourceRepos project entity */
+        project?: string;
+        /** Proxy specifies the HTTP/HTTPS proxy used to access the repo */
+        proxy?: string;
+        /** Repo contains the URL to the remote repository */
         repo?: string;
-        /**
-         * SSH private key data for authenticating at the repo server
-         * only for Git repos
-         */
+        /** SSHPrivateKey contains the PEM data for authenticating at the repo server. Only used with Git repos. */
         sshPrivateKey?: string;
-        /** TLS client cert data for authenticating at the repo server */
+        /** TLSClientCertData contains a certificate in PEM format for authenticating at the repo server */
         tlsClientCertData?: string;
-        /** TLS client cert key for authenticating at the repo server */
+        /** TLSClientCertKey contains a private key in PEM format for authenticating at the repo server */
         tlsClientCertKey?: string;
-        /** type of the repo, maybe "git or "helm, "git" is assumed if empty or absent */
+        /** Type specifies the type of the repo. Can be either "git" or "helm. "git" is assumed if empty or absent. */
         type?: string;
-        /** Username for authenticating at the repo server */
+        /** Username contains the user name used for authenticating at the remote repository */
         username?: string;
     }
     export interface v1alpha1RepositoryCertificate {
-        /** Actual certificate data, protocol dependent */
+        /** CertData contains the actual certificate data, dependent on the certificate type */
         certData?: Blob;
-        /** Additional certificate info (e.g. SSH fingerprint, X509 CommonName) */
+        /** CertInfo will hold additional certificate info, depdendent on the certificate type (e.g. SSH fingerprint, X509 CommonName) */
         certInfo?: string;
-        /** The sub type of the cert, i.e. "ssh-rsa" */
+        /** CertSubType specifies the sub type of the cert, i.e. "ssh-rsa" */
         certSubType?: string;
-        /** Type of certificate - currently "https" or "ssh" */
+        /** CertType specifies the type of the certificate - currently one of "https" or "ssh" */
         certType?: string;
-        /** Name of the server the certificate is intended for */
+        /** ServerName specifies the DNS name of the server this certificate is intended for */
         serverName?: string;
     }
     export interface v1alpha1RepositoryCertificateList {
@@ -1300,20 +1467,28 @@ export namespace Schemas {
         kind?: string;
         /** TargetState contains the JSON live resource manifest */
         liveState?: string;
+        modified?: boolean;
         name?: string;
         namespace?: string;
         /** NormalizedLiveState contains JSON serialized live resource state with applied normalizations */
         normalizedLiveState?: string;
         /** PredictedLiveState contains JSON serialized resource state that is calculated based on normalized and target resource state */
         predictedLiveState?: string;
+        resourceVersion?: string;
         /** TargetState contains the JSON serialized resource manifest defined in the Git/Helm */
         targetState?: string;
     }
     /** ResourceIgnoreDifferences contains resource filter and list of json paths which should be ignored during comparison with live state. */
     export interface v1alpha1ResourceIgnoreDifferences {
         group?: string;
+        jqPathExpressions?: string[];
         jsonPointers?: string[];
         kind?: string;
+        /**
+         * ManagedFieldsManagers is a list of trusted managers. Fields mutated by those managers will take precedence over the
+         * desired state defined in the SCM and won't be displayed in diffs
+         */
+        managedFieldsManagers?: string[];
         name?: string;
         namespace?: string;
     }
@@ -1344,6 +1519,7 @@ export namespace Schemas {
         healthLua?: string;
         ignoreDifferences?: Schemas.v1alpha1OverrideIgnoreDiff;
         knownTypeFields?: Schemas.v1alpha1KnownTypeField[];
+        useOpenLibs?: boolean;
     }
     export interface v1alpha1ResourceRef {
         group?: string;
@@ -1354,23 +1530,28 @@ export namespace Schemas {
         version?: string;
     }
     export interface v1alpha1ResourceResult {
+        /** Group specifies the API group of the resource */
         group?: string;
         /**
-         * the state of any operation associated with this resource OR hook
-         * note: can contain values for non-hook resources
+         * HookPhase contains the state of any operation associated with this resource OR hook
+         * This can also contain values for non-hook resources.
          */
         hookPhase?: string;
-        /** the type of the hook, empty for non-hook resources */
+        /** HookType specifies the type of the hook. Empty for non-hook resources */
         hookType?: string;
+        /** Kind specifies the API kind of the resource */
         kind?: string;
-        /** message for the last sync OR operation */
+        /** Message contains an informational or error message for the last sync OR operation */
         message?: string;
+        /** Name specifies the name of the resource */
         name?: string;
+        /** Namespace specifies the target namespace of the resource */
         namespace?: string;
-        /** the final result of the sync, this is be empty if the resources is yet to be applied/pruned and is always zero-value for hooks */
+        /** Status holds the final result of the sync. Will be empty if the resources is yet to be applied/pruned and is always zero-value for hooks */
         status?: string;
-        /** indicates the particular phase of the sync that this is for */
+        /** SyncPhase indicates the particular phase of the sync that this result was acquired in */
         syncPhase?: string;
+        /** Version specifies the API version of the resource */
         version?: string;
     }
     export interface v1alpha1ResourceStatus {
@@ -1386,7 +1567,7 @@ export namespace Schemas {
     }
     export interface v1alpha1RetryStrategy {
         backoff?: Schemas.v1alpha1Backoff;
-        /** Limit is the maximum number of attempts when retrying a container */
+        /** Limit is the maximum number of attempts for retrying a failed sync. If set to 0, no retries will be performed. */
         limit?: string;
     }
     export interface v1alpha1RevisionHistory {
@@ -1394,7 +1575,7 @@ export namespace Schemas {
         deployedAt?: Schemas.v1Time;
         /** ID is an auto incrementing identifier of the RevisionHistory */
         id?: string;
-        /** Revision holds the revision of the sync */
+        /** Revision holds the revision the sync was performed against */
         revision?: string;
         source?: Schemas.v1alpha1ApplicationSource;
     }
@@ -1407,19 +1588,15 @@ export namespace Schemas {
         author?: string;
         date?: Schemas.v1Time;
         /**
-         * the message associated with the revision,
-         * probably the commit message,
-         * this is truncated to the first newline or 64 characters (which ever comes first)
+         * Message contains the message associated with the revision, most likely the commit message.
+         * The message is truncated to the first newline or 64 characters (which ever comes first)
          */
         message?: string;
-        /**
-         * If revision was signed with GPG, and signature verification is enabled,
-         * this contains a hint on the signer
-         */
+        /** SignatureInfo contains a hint on the signer if the revision was signed with GPG, and signature verification is enabled. */
         signatureInfo?: string;
         /**
-         * tags on the revision,
-         * note - tags can move from one revision to another
+         * Tags specifies any tags currently attached to the revision
+         * Floating tags can move from one revision to another
          */
         tags?: string[];
     }
@@ -1427,18 +1604,18 @@ export namespace Schemas {
         /** The ID of the key in hexadecimal notation */
         keyID?: string;
     }
-    /** SyncOperation contains sync operation details. */
+    /** SyncOperation contains details about a sync operation. */
     export interface v1alpha1SyncOperation {
-        /** DryRun will perform a `kubectl apply --dry-run` without actually performing the sync */
+        /** DryRun specifies to perform a `kubectl apply --dry-run` without actually performing the sync */
         dryRun?: boolean;
         /** Manifests is an optional field that overrides sync source with a local directory for development */
         manifests?: string[];
-        /** Prune deletes resources that are no longer tracked in git */
+        /** Prune specifies to delete resources from the cluster that are no longer tracked in git */
         prune?: boolean;
-        /** Resources describes which resources to sync */
+        /** Resources describes which resources shall be part of the sync */
         resources?: Schemas.v1alpha1SyncOperationResource[];
         /**
-         * Revision is the revision in which to sync the application to.
+         * Revision is the revision (Git) or chart version (Helm) which to sync the application to
          * If omitted, will use the revision specified in app spec.
          */
         revision?: string;
@@ -1455,9 +1632,9 @@ export namespace Schemas {
         namespace?: string;
     }
     export interface v1alpha1SyncOperationResult {
-        /** Resources holds the sync result of each individual resource */
+        /** Resources contains a list of sync result items for each individual resource in a sync operation */
         resources?: Schemas.v1alpha1ResourceResult[];
-        /** Revision holds the revision of the sync */
+        /** Revision holds the revision this sync operation was performed to */
         revision?: string;
         source?: Schemas.v1alpha1ApplicationSource;
     }
@@ -1470,15 +1647,16 @@ export namespace Schemas {
     export interface v1alpha1SyncPolicyAutomated {
         /** AllowEmpty allows apps have zero live resources (default: false) */
         allowEmpty?: boolean;
-        /** Prune will prune resources automatically as part of automated sync (default: false) */
+        /** Prune specifies whether to delete resources from the cluster that are not found in the sources anymore as part of automated sync (default: false) */
         prune?: boolean;
-        /** SelfHeal enables auto-syncing if  (default: false) */
+        /** SelfHeal specifes whether to revert resources back to their desired state upon modification in the cluster (default: false) */
         selfHeal?: boolean;
     }
-    /** SyncStatus is a comparison result of application spec and deployed application. */
     export interface v1alpha1SyncStatus {
         comparedTo?: Schemas.v1alpha1ComparedTo;
+        /** Revision contains information about the revision the comparison has been performed to */
         revision?: string;
+        /** Status is the sync state of the comparison */
         status?: string;
     }
     export interface v1alpha1SyncStrategy {
@@ -1515,6 +1693,8 @@ export namespace Schemas {
         namespaces?: string[];
         /** Schedule is the time the window will begin, specified in cron format */
         schedule?: string;
+        /** TimeZone of the sync that will be applied to the schedule */
+        timeZone?: string;
     }
     export interface v1alpha1TLSClientConfig {
         /**
@@ -1527,7 +1707,7 @@ export namespace Schemas {
          * CertData takes precedence over CertFile
          */
         certData?: Blob;
-        /** Server should be accessed without verifying the TLS certificate. For testing only. */
+        /** Insecure specifies that the server should be accessed without verifying the TLS certificate. For testing only. */
         insecure?: boolean;
         /**
          * KeyData holds PEM-encoded bytes (typically read from a client certificate key file).
@@ -1550,7 +1730,6 @@ export namespace Schemas {
         GoVersion?: string;
         HelmVersion?: string;
         JsonnetVersion?: string;
-        KsonnetVersion?: string;
         KubectlVersion?: string;
         KustomizeVersion?: string;
         Platform?: string;
@@ -1563,7 +1742,7 @@ export namespace RequestBodies {
             "application/json": Schemas.v1alpha1Application;
         }
     }
-    export namespace PatchResourceBody {
+    export namespace ApplicationService_PatchResourceBody {
         export interface Content {
             "application/json": string;
         }
@@ -1574,65 +1753,97 @@ export namespace RequestBodies {
         }
     }
 }
-export interface Response$ListAccounts$Status$200 {
+export interface Response$AccountService_ListAccounts$Status$200 {
     "application/json": Schemas.accountAccountsList;
 }
-export interface Parameter$CanI {
+export interface Response$AccountService_ListAccounts$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$AccountService_CanI {
     resource: string;
     action: string;
     subresource: string;
 }
-export interface Response$CanI$Status$200 {
+export interface Response$AccountService_CanI$Status$200 {
     "application/json": Schemas.accountCanIResponse;
 }
-export interface RequestBody$UpdatePassword {
+export interface Response$AccountService_CanI$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface RequestBody$AccountService_UpdatePassword {
     "application/json": Schemas.accountUpdatePasswordRequest;
 }
-export interface Response$UpdatePassword$Status$200 {
+export interface Response$AccountService_UpdatePassword$Status$200 {
     "application/json": Schemas.accountUpdatePasswordResponse;
 }
-export interface Parameter$GetAccount {
+export interface Response$AccountService_UpdatePassword$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$AccountService_GetAccount {
     name: string;
 }
-export interface Response$GetAccount$Status$200 {
+export interface Response$AccountService_GetAccount$Status$200 {
     "application/json": Schemas.accountAccount;
 }
-export interface Parameter$CreateToken {
+export interface Response$AccountService_GetAccount$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$AccountService_CreateToken {
     name: string;
 }
-export interface RequestBody$CreateToken {
+export interface RequestBody$AccountService_CreateToken {
     "application/json": Schemas.accountCreateTokenRequest;
 }
-export interface Response$CreateToken$Status$200 {
+export interface Response$AccountService_CreateToken$Status$200 {
     "application/json": Schemas.accountCreateTokenResponse;
 }
-export interface Parameter$DeleteToken {
+export interface Response$AccountService_CreateToken$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$AccountService_DeleteToken {
     name: string;
     id: string;
 }
-export interface Response$DeleteToken$Status$200 {
+export interface Response$AccountService_DeleteToken$Status$200 {
     "application/json": Schemas.accountEmptyResponse;
 }
-export interface Parameter$List {
+export interface Response$AccountService_DeleteToken$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_List {
     /** the application's name. */
     name?: string;
     /** forces application reconciliation if set to true. */
     refresh?: string;
     /** the project names to restrict returned list applications. */
-    project?: string[];
+    projects?: string[];
     /** when specified with a watch call, shows changes that occur after that particular version of a resource. */
     resourceVersion?: string;
-    /** the selector to to restrict returned list to applications only with matched labels. */
+    /** the selector to restrict returned list to applications only with matched labels. */
     selector?: string;
+    /** the repoURL to restrict returned list applications. */
+    repo?: string;
+    /** the project names to restrict returned list applications (legacy name for backwards-compatibility). */
+    project?: string[];
 }
-export interface Response$List$Status$200 {
+export interface Response$ApplicationService_List$Status$200 {
     "application/json": Schemas.v1alpha1ApplicationList;
 }
-export type RequestBody$Create = RequestBodies.v1alpha1Application.Content;
-export interface Response$Create$Status$200 {
+export interface Response$ApplicationService_List$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Create {
+    upsert?: boolean;
+    validate?: boolean;
+}
+export type RequestBody$ApplicationService_Create = RequestBodies.v1alpha1Application.Content;
+export interface Response$ApplicationService_Create$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
-export interface Parameter$Update {
+export interface Response$ApplicationService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Update {
     /**
      * Name must be unique within a namespace. Is required when creating resources, although
      * some resources may allow a client to request the generation of an appropriate name
@@ -1643,12 +1854,16 @@ export interface Parameter$Update {
      * +optional
      */
     "application.metadata.name": string;
+    validate?: boolean;
 }
-export type RequestBody$Update = RequestBodies.v1alpha1Application.Content;
-export interface Response$Update$Status$200 {
+export type RequestBody$ApplicationService_Update = RequestBodies.v1alpha1Application.Content;
+export interface Response$ApplicationService_Update$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
-export interface Parameter$ManagedResources {
+export interface Response$ApplicationService_Update$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_ManagedResources {
     applicationName: string;
     namespace?: string;
     name?: string;
@@ -1656,10 +1871,13 @@ export interface Parameter$ManagedResources {
     group?: string;
     kind?: string;
 }
-export interface Response$ManagedResources$Status$200 {
+export interface Response$ApplicationService_ManagedResources$Status$200 {
     "application/json": Schemas.applicationManagedResourcesResponse;
 }
-export interface Parameter$ResourceTree {
+export interface Response$ApplicationService_ManagedResources$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_ResourceTree {
     applicationName: string;
     namespace?: string;
     name?: string;
@@ -1667,63 +1885,126 @@ export interface Parameter$ResourceTree {
     group?: string;
     kind?: string;
 }
-export interface Response$ResourceTree$Status$200 {
+export interface Response$ApplicationService_ResourceTree$Status$200 {
     "application/json": Schemas.v1alpha1ApplicationTree;
 }
-export interface Parameter$Get {
+export interface Response$ApplicationService_ResourceTree$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Get {
     /** the application's name */
     name: string;
     /** forces application reconciliation if set to true. */
     refresh?: string;
     /** the project names to restrict returned list applications. */
-    project?: string[];
+    projects?: string[];
     /** when specified with a watch call, shows changes that occur after that particular version of a resource. */
     resourceVersion?: string;
-    /** the selector to to restrict returned list to applications only with matched labels. */
+    /** the selector to restrict returned list to applications only with matched labels. */
     selector?: string;
+    /** the repoURL to restrict returned list applications. */
+    repo?: string;
+    /** the project names to restrict returned list applications (legacy name for backwards-compatibility). */
+    project?: string[];
 }
-export interface Response$Get$Status$200 {
+export interface Response$ApplicationService_Get$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
-export interface Parameter$Delete {
+export interface Response$ApplicationService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Delete {
     name: string;
     cascade?: boolean;
+    propagationPolicy?: string;
 }
-export interface Response$Delete$Status$200 {
+export interface Response$ApplicationService_Delete$Status$200 {
     "application/json": Schemas.applicationApplicationResponse;
 }
-export interface Parameter$Patch {
+export interface Response$ApplicationService_Delete$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Patch {
     name: string;
 }
-export interface RequestBody$Patch {
+export interface RequestBody$ApplicationService_Patch {
     "application/json": Schemas.applicationApplicationPatchRequest;
 }
-export interface Response$Patch$Status$200 {
+export interface Response$ApplicationService_Patch$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
-export interface Parameter$ListResourceEvents {
+export interface Response$ApplicationService_Patch$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_ListResourceEvents {
     name: string;
     resourceNamespace?: string;
     resourceName?: string;
     resourceUID?: string;
 }
-export interface Response$ListResourceEvents$Status$200 {
+export interface Response$ApplicationService_ListResourceEvents$Status$200 {
     "application/json": Schemas.v1EventList;
 }
-export interface Parameter$GetManifests {
+export interface Response$ApplicationService_ListResourceEvents$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_PodLogs2 {
+    name: string;
+    namespace?: string;
+    podName?: string;
+    container?: string;
+    sinceSeconds?: string;
+    /**
+     * Represents seconds of UTC time since Unix epoch
+     * 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
+     * 9999-12-31T23:59:59Z inclusive.
+     */
+    "sinceTime.seconds"?: string;
+    /**
+     * Non-negative fractions of a second at nanosecond resolution. Negative
+     * second values with fractions must still have non-negative nanos values
+     * that count forward in time. Must be from 0 to 999,999,999
+     * inclusive. This field may be limited in precision depending on context.
+     */
+    "sinceTime.nanos"?: number;
+    tailLines?: string;
+    follow?: boolean;
+    untilTime?: string;
+    filter?: string;
+    kind?: string;
+    group?: string;
+    resourceName?: string;
+    previous?: boolean;
+}
+export interface Response$ApplicationService_PodLogs2$Status$200 {
+    "application/json": {
+        error?: Schemas.runtimeStreamError;
+        result?: Schemas.applicationLogEntry;
+    };
+}
+export interface Response$ApplicationService_PodLogs2$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_GetManifests {
     name: string;
     revision?: string;
 }
-export interface Response$GetManifests$Status$200 {
+export interface Response$ApplicationService_GetManifests$Status$200 {
     "application/json": Schemas.repositoryManifestResponse;
 }
-export interface Parameter$TerminateOperation {
+export interface Response$ApplicationService_GetManifests$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_TerminateOperation {
     name: string;
 }
-export interface Response$TerminateOperation$Status$200 {
+export interface Response$ApplicationService_TerminateOperation$Status$200 {
     "application/json": Schemas.applicationOperationTerminateResponse;
 }
-export interface Parameter$PodLogs {
+export interface Response$ApplicationService_TerminateOperation$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_PodLogs {
     name: string;
     podName: string;
     namespace?: string;
@@ -1744,14 +2025,23 @@ export interface Parameter$PodLogs {
     "sinceTime.nanos"?: number;
     tailLines?: string;
     follow?: boolean;
+    untilTime?: string;
+    filter?: string;
+    kind?: string;
+    group?: string;
+    resourceName?: string;
+    previous?: boolean;
 }
-export interface Response$PodLogs$Status$200 {
+export interface Response$ApplicationService_PodLogs$Status$200 {
     "application/json": {
         error?: Schemas.runtimeStreamError;
         result?: Schemas.applicationLogEntry;
     };
 }
-export interface Parameter$GetResource {
+export interface Response$ApplicationService_PodLogs$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_GetResource {
     name: string;
     namespace?: string;
     resourceName?: string;
@@ -1759,17 +2049,29 @@ export interface Parameter$GetResource {
     group?: string;
     kind?: string;
 }
-export interface Response$GetResource$Status$200 {
+export interface Response$ApplicationService_GetResource$Status$200 {
     "application/json": Schemas.applicationApplicationResourceResponse;
 }
-export interface Parameter$PatchResource {
+export interface Response$ApplicationService_GetResource$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_PatchResource {
     name: string;
+    namespace?: string;
+    resourceName?: string;
+    version?: string;
+    group?: string;
+    kind?: string;
+    patchType?: string;
 }
-export type RequestBody$PatchResource = RequestBodies.PatchResourceBody.Content;
-export interface Response$PatchResource$Status$200 {
+export type RequestBody$ApplicationService_PatchResource = RequestBodies.ApplicationService_PatchResourceBody.Content;
+export interface Response$ApplicationService_PatchResource$Status$200 {
     "application/json": Schemas.applicationApplicationResourceResponse;
 }
-export interface Parameter$DeleteResource {
+export interface Response$ApplicationService_PatchResource$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_DeleteResource {
     name: string;
     namespace?: string;
     resourceName?: string;
@@ -1777,11 +2079,15 @@ export interface Parameter$DeleteResource {
     group?: string;
     kind?: string;
     force?: boolean;
+    orphan?: boolean;
 }
-export interface Response$DeleteResource$Status$200 {
+export interface Response$ApplicationService_DeleteResource$Status$200 {
     "application/json": Schemas.applicationApplicationResponse;
 }
-export interface Parameter$ListResourceActions {
+export interface Response$ApplicationService_DeleteResource$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_ListResourceActions {
     name: string;
     namespace?: string;
     resourceName?: string;
@@ -1789,59 +2095,86 @@ export interface Parameter$ListResourceActions {
     group?: string;
     kind?: string;
 }
-export interface Response$ListResourceActions$Status$200 {
+export interface Response$ApplicationService_ListResourceActions$Status$200 {
     "application/json": Schemas.applicationResourceActionsListResponse;
 }
-export interface Parameter$RunResourceAction {
-    name: string;
+export interface Response$ApplicationService_ListResourceActions$Status$default {
+    "application/json": Schemas.runtimeError;
 }
-export type RequestBody$RunResourceAction = RequestBodies.PatchResourceBody.Content;
-export interface Response$RunResourceAction$Status$200 {
+export interface Parameter$ApplicationService_RunResourceAction {
+    name: string;
+    namespace?: string;
+    resourceName?: string;
+    version?: string;
+    group?: string;
+    kind?: string;
+}
+export type RequestBody$ApplicationService_RunResourceAction = RequestBodies.ApplicationService_PatchResourceBody.Content;
+export interface Response$ApplicationService_RunResourceAction$Status$200 {
     "application/json": Schemas.applicationApplicationResponse;
 }
-export interface Parameter$RevisionMetadata {
+export interface Response$ApplicationService_RunResourceAction$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_RevisionMetadata {
     /** the application's name */
     name: string;
     /** the revision of the app */
     revision: string;
 }
-export interface Response$RevisionMetadata$Status$200 {
+export interface Response$ApplicationService_RevisionMetadata$Status$200 {
     "application/json": Schemas.v1alpha1RevisionMetadata;
 }
-export interface Parameter$Rollback {
+export interface Response$ApplicationService_RevisionMetadata$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Rollback {
     name: string;
 }
-export interface RequestBody$Rollback {
+export interface RequestBody$ApplicationService_Rollback {
     "application/json": Schemas.applicationApplicationRollbackRequest;
 }
-export interface Response$Rollback$Status$200 {
+export interface Response$ApplicationService_Rollback$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
-export interface Parameter$UpdateSpec {
-    name: string;
+export interface Response$ApplicationService_Rollback$Status$default {
+    "application/json": Schemas.runtimeError;
 }
-export interface RequestBody$UpdateSpec {
+export interface Parameter$ApplicationService_UpdateSpec {
+    name: string;
+    validate?: boolean;
+}
+export interface RequestBody$ApplicationService_UpdateSpec {
     "application/json": Schemas.v1alpha1ApplicationSpec;
 }
-export interface Response$UpdateSpec$Status$200 {
+export interface Response$ApplicationService_UpdateSpec$Status$200 {
     "application/json": Schemas.v1alpha1ApplicationSpec;
 }
-export interface Parameter$Sync {
+export interface Response$ApplicationService_UpdateSpec$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Sync {
     name: string;
 }
-export interface RequestBody$Sync {
+export interface RequestBody$ApplicationService_Sync {
     "application/json": Schemas.applicationApplicationSyncRequest;
 }
-export interface Response$Sync$Status$200 {
+export interface Response$ApplicationService_Sync$Status$200 {
     "application/json": Schemas.v1alpha1Application;
 }
-export interface Parameter$GetApplicationSyncWindows {
+export interface Response$ApplicationService_Sync$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_GetApplicationSyncWindows {
     name: string;
 }
-export interface Response$GetApplicationSyncWindows$Status$200 {
+export interface Response$ApplicationService_GetApplicationSyncWindows$Status$200 {
     "application/json": Schemas.applicationApplicationSyncWindowsResponse;
 }
-export interface Parameter$ListCertificates {
+export interface Response$ApplicationService_GetApplicationSyncWindows$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$CertificateService_ListCertificates {
     /** A file-glob pattern (not regular expression) the host name has to match. */
     hostNamePattern?: string;
     /** The type of the certificate to match (ssh or https). */
@@ -1849,16 +2182,26 @@ export interface Parameter$ListCertificates {
     /** The sub type of the certificate to match (protocol dependent, usually only used for ssh certs). */
     certSubType?: string;
 }
-export interface Response$ListCertificates$Status$200 {
+export interface Response$CertificateService_ListCertificates$Status$200 {
     "application/json": Schemas.v1alpha1RepositoryCertificateList;
 }
-export interface RequestBody$CreateCertificate {
+export interface Response$CertificateService_ListCertificates$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$CertificateService_CreateCertificate {
+    /** Whether to upsert already existing certificates. */
+    upsert?: boolean;
+}
+export interface RequestBody$CertificateService_CreateCertificate {
     "application/json": Schemas.v1alpha1RepositoryCertificateList;
 }
-export interface Response$CreateCertificate$Status$200 {
+export interface Response$CertificateService_CreateCertificate$Status$200 {
     "application/json": Schemas.v1alpha1RepositoryCertificateList;
 }
-export interface Parameter$DeleteCertificate {
+export interface Response$CertificateService_CreateCertificate$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$CertificateService_DeleteCertificate {
     /** A file-glob pattern (not regular expression) the host name has to match. */
     hostNamePattern?: string;
     /** The type of the certificate to match (ssh or https). */
@@ -1866,124 +2209,214 @@ export interface Parameter$DeleteCertificate {
     /** The sub type of the certificate to match (protocol dependent, usually only used for ssh certs). */
     certSubType?: string;
 }
-export interface Response$DeleteCertificate$Status$200 {
+export interface Response$CertificateService_DeleteCertificate$Status$200 {
     "application/json": Schemas.v1alpha1RepositoryCertificateList;
 }
-export interface Parameter$ListMixin3 {
+export interface Response$CertificateService_DeleteCertificate$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ClusterService_List {
     server?: string;
     name?: string;
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
+    /** value holds the cluster server URL or cluster name. */
+    "id.value"?: string;
 }
-export interface Response$ListMixin3$Status$200 {
+export interface Response$ClusterService_List$Status$200 {
     "application/json": Schemas.v1alpha1ClusterList;
 }
-export type RequestBody$CreateMixin3 = RequestBodies.v1alpha1Cluster.Content;
-export interface Response$CreateMixin3$Status$200 {
+export interface Response$ClusterService_List$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ClusterService_Create {
+    upsert?: boolean;
+}
+export type RequestBody$ClusterService_Create = RequestBodies.v1alpha1Cluster.Content;
+export interface Response$ClusterService_Create$Status$200 {
     "application/json": Schemas.v1alpha1Cluster;
 }
-export interface Parameter$UpdateMixin3 {
-    /** Server is the API server URL of the Kubernetes cluster */
-    "cluster.server": string;
+export interface Response$ClusterService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
 }
-export type RequestBody$UpdateMixin3 = RequestBodies.v1alpha1Cluster.Content;
-export interface Response$UpdateMixin3$Status$200 {
-    "application/json": Schemas.v1alpha1Cluster;
-}
-export interface Parameter$GetMixin3 {
-    server: string;
+export interface Parameter$ClusterService_Get {
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+    server?: string;
     name?: string;
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
 }
-export interface Response$GetMixin3$Status$200 {
+export interface Response$ClusterService_Get$Status$200 {
     "application/json": Schemas.v1alpha1Cluster;
 }
-export interface Parameter$DeleteMixin3 {
-    server: string;
-    name?: string;
+export interface Response$ClusterService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
 }
-export interface Response$DeleteMixin3$Status$200 {
+export interface Parameter$ClusterService_Update {
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+    updatedFields?: string[];
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
+}
+export type RequestBody$ClusterService_Update = RequestBodies.v1alpha1Cluster.Content;
+export interface Response$ClusterService_Update$Status$200 {
+    "application/json": Schemas.v1alpha1Cluster;
+}
+export interface Response$ClusterService_Update$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ClusterService_Delete {
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+    server?: string;
+    name?: string;
+    /** type is the type of the specified cluster identifier ( "server" - default, "name" ). */
+    "id.type"?: string;
+}
+export interface Response$ClusterService_Delete$Status$200 {
     "application/json": Schemas.clusterClusterResponse;
 }
-export interface Parameter$InvalidateCache {
-    server: string;
+export interface Response$ClusterService_Delete$Status$default {
+    "application/json": Schemas.runtimeError;
 }
-export interface Response$InvalidateCache$Status$200 {
+export interface Parameter$ClusterService_InvalidateCache {
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+}
+export interface Response$ClusterService_InvalidateCache$Status$200 {
     "application/json": Schemas.v1alpha1Cluster;
 }
-export interface Parameter$RotateAuth {
-    server: string;
+export interface Response$ClusterService_InvalidateCache$Status$default {
+    "application/json": Schemas.runtimeError;
 }
-export interface Response$RotateAuth$Status$200 {
+export interface Parameter$ClusterService_RotateAuth {
+    /** value holds the cluster server URL or cluster name */
+    "id.value": string;
+}
+export interface Response$ClusterService_RotateAuth$Status$200 {
     "application/json": Schemas.clusterClusterResponse;
 }
-export interface Parameter$ListMixin4 {
+export interface Response$ClusterService_RotateAuth$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$GPGKeyService_List {
     /** The GPG key ID to query for. */
     keyID?: string;
 }
-export interface Response$ListMixin4$Status$200 {
+export interface Response$GPGKeyService_List$Status$200 {
     "application/json": Schemas.v1alpha1GnuPGPublicKeyList;
 }
-export interface RequestBody$CreateMixin4 {
+export interface Response$GPGKeyService_List$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$GPGKeyService_Create {
+    /** Whether to upsert already existing public keys. */
+    upsert?: boolean;
+}
+export interface RequestBody$GPGKeyService_Create {
     "application/json": Schemas.v1alpha1GnuPGPublicKey;
 }
-export interface Response$CreateMixin4$Status$200 {
+export interface Response$GPGKeyService_Create$Status$200 {
     "application/json": Schemas.gpgkeyGnuPGPublicKeyCreateResponse;
 }
-export interface Parameter$DeleteMixin4 {
+export interface Response$GPGKeyService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$GPGKeyService_Delete {
     /** The GPG key ID to query for. */
     keyID?: string;
 }
-export interface Response$DeleteMixin4$Status$200 {
+export interface Response$GPGKeyService_Delete$Status$200 {
     "application/json": Schemas.gpgkeyGnuPGPublicKeyResponse;
 }
-export interface Parameter$GetMixin4 {
+export interface Response$GPGKeyService_Delete$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$GPGKeyService_Get {
     /** The GPG key ID to query for */
     keyID: string;
 }
-export interface Response$GetMixin4$Status$200 {
+export interface Response$GPGKeyService_Get$Status$200 {
     "application/json": Schemas.v1alpha1GnuPGPublicKey;
 }
-export interface Parameter$ListMixin5 {
+export interface Response$GPGKeyService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_List {
     name?: string;
 }
-export interface Response$ListMixin5$Status$200 {
+export interface Response$ProjectService_List$Status$200 {
     "application/json": Schemas.v1alpha1AppProjectList;
 }
-export interface RequestBody$CreateMixin5 {
+export interface Response$ProjectService_List$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface RequestBody$ProjectService_Create {
     "application/json": Schemas.projectProjectCreateRequest;
 }
-export interface Response$CreateMixin5$Status$200 {
+export interface Response$ProjectService_Create$Status$200 {
     "application/json": Schemas.v1alpha1AppProject;
 }
-export interface Parameter$GetMixin5 {
+export interface Response$ProjectService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_Get {
     name: string;
 }
-export interface Response$GetMixin5$Status$200 {
+export interface Response$ProjectService_Get$Status$200 {
     "application/json": Schemas.v1alpha1AppProject;
 }
-export interface Parameter$DeleteMixin5 {
+export interface Response$ProjectService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_Delete {
     name: string;
 }
-export interface Response$DeleteMixin5$Status$200 {
+export interface Response$ProjectService_Delete$Status$200 {
     "application/json": Schemas.projectEmptyResponse;
 }
-export interface Parameter$ListEvents {
+export interface Response$ProjectService_Delete$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_GetDetailedProject {
     name: string;
 }
-export interface Response$ListEvents$Status$200 {
+export interface Response$ProjectService_GetDetailedProject$Status$200 {
+    "application/json": Schemas.projectDetailedProjectsResponse;
+}
+export interface Response$ProjectService_GetDetailedProject$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_ListEvents {
+    name: string;
+}
+export interface Response$ProjectService_ListEvents$Status$200 {
     "application/json": Schemas.v1EventList;
 }
-export interface Parameter$GetGlobalProjects {
+export interface Response$ProjectService_ListEvents$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_GetGlobalProjects {
     name: string;
 }
-export interface Response$GetGlobalProjects$Status$200 {
+export interface Response$ProjectService_GetGlobalProjects$Status$200 {
     "application/json": Schemas.projectGlobalProjectsResponse;
 }
-export interface Parameter$GetSyncWindowsState {
+export interface Response$ProjectService_GetGlobalProjects$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_GetSyncWindowsState {
     name: string;
 }
-export interface Response$GetSyncWindowsState$Status$200 {
+export interface Response$ProjectService_GetSyncWindowsState$Status$200 {
     "application/json": Schemas.projectSyncWindowsResponse;
 }
-export interface Parameter$UpdateMixin5 {
+export interface Response$ProjectService_GetSyncWindowsState$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_Update {
     /**
      * Name must be unique within a namespace. Is required when creating resources, although
      * some resources may allow a client to request the generation of an appropriate name
@@ -1995,182 +2428,294 @@ export interface Parameter$UpdateMixin5 {
      */
     "project.metadata.name": string;
 }
-export interface RequestBody$UpdateMixin5 {
+export interface RequestBody$ProjectService_Update {
     "application/json": Schemas.projectProjectUpdateRequest;
 }
-export interface Response$UpdateMixin5$Status$200 {
+export interface Response$ProjectService_Update$Status$200 {
     "application/json": Schemas.v1alpha1AppProject;
 }
-export interface Parameter$CreateTokenMixin5 {
+export interface Response$ProjectService_Update$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_CreateToken {
     project: string;
     role: string;
 }
-export interface RequestBody$CreateTokenMixin5 {
+export interface RequestBody$ProjectService_CreateToken {
     "application/json": Schemas.projectProjectTokenCreateRequest;
 }
-export interface Response$CreateTokenMixin5$Status$200 {
+export interface Response$ProjectService_CreateToken$Status$200 {
     "application/json": Schemas.projectProjectTokenResponse;
 }
-export interface Parameter$DeleteTokenMixin5 {
+export interface Response$ProjectService_CreateToken$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ProjectService_DeleteToken {
     project: string;
     role: string;
     iat: string;
     id?: string;
 }
-export interface Response$DeleteTokenMixin5$Status$200 {
+export interface Response$ProjectService_DeleteToken$Status$200 {
     "application/json": Schemas.projectEmptyResponse;
 }
-export interface Parameter$ListRepositoryCredentials {
+export interface Response$ProjectService_DeleteToken$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepoCredsService_ListRepositoryCredentials {
     /** Repo URL for query. */
     url?: string;
 }
-export interface Response$ListRepositoryCredentials$Status$200 {
+export interface Response$RepoCredsService_ListRepositoryCredentials$Status$200 {
     "application/json": Schemas.v1alpha1RepoCredsList;
 }
-export interface RequestBody$CreateRepositoryCredentials {
+export interface Response$RepoCredsService_ListRepositoryCredentials$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepoCredsService_CreateRepositoryCredentials {
+    /** Whether to create in upsert mode. */
+    upsert?: boolean;
+}
+export interface RequestBody$RepoCredsService_CreateRepositoryCredentials {
     "application/json": Schemas.v1alpha1RepoCreds;
 }
-export interface Response$CreateRepositoryCredentials$Status$200 {
+export interface Response$RepoCredsService_CreateRepositoryCredentials$Status$200 {
     "application/json": Schemas.v1alpha1RepoCreds;
 }
-export interface Parameter$UpdateRepositoryCredentials {
+export interface Response$RepoCredsService_CreateRepositoryCredentials$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepoCredsService_UpdateRepositoryCredentials {
     /** URL is the URL that this credentials matches to */
     "creds.url": string;
 }
-export interface RequestBody$UpdateRepositoryCredentials {
+export interface RequestBody$RepoCredsService_UpdateRepositoryCredentials {
     "application/json": Schemas.v1alpha1RepoCreds;
 }
-export interface Response$UpdateRepositoryCredentials$Status$200 {
+export interface Response$RepoCredsService_UpdateRepositoryCredentials$Status$200 {
     "application/json": Schemas.v1alpha1RepoCreds;
 }
-export interface Parameter$DeleteRepositoryCredentials {
+export interface Response$RepoCredsService_UpdateRepositoryCredentials$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepoCredsService_DeleteRepositoryCredentials {
     url: string;
 }
-export interface Response$DeleteRepositoryCredentials$Status$200 {
+export interface Response$RepoCredsService_DeleteRepositoryCredentials$Status$200 {
     "application/json": Schemas.repocredsRepoCredsResponse;
 }
-export interface Parameter$ListRepositories {
+export interface Response$RepoCredsService_DeleteRepositoryCredentials$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_ListRepositories {
     /** Repo URL for query. */
     repo?: string;
     /** Whether to force a cache refresh on repo's connection state. */
     forceRefresh?: boolean;
 }
-export interface Response$ListRepositories$Status$200 {
+export interface Response$RepositoryService_ListRepositories$Status$200 {
     "application/json": Schemas.v1alpha1RepositoryList;
 }
-export interface RequestBody$CreateRepository {
+export interface Response$RepositoryService_ListRepositories$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_CreateRepository {
+    /** Whether to create in upsert mode. */
+    upsert?: boolean;
+    /** Whether to operate on credential set instead of repository. */
+    credsOnly?: boolean;
+}
+export interface RequestBody$RepositoryService_CreateRepository {
     "application/json": Schemas.v1alpha1Repository;
 }
-export interface Response$CreateRepository$Status$200 {
+export interface Response$RepositoryService_CreateRepository$Status$200 {
     "application/json": Schemas.v1alpha1Repository;
 }
-export interface Parameter$UpdateRepository {
-    /** URL of the repo */
+export interface Response$RepositoryService_CreateRepository$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_UpdateRepository {
+    /** Repo contains the URL to the remote repository */
     "repo.repo": string;
 }
-export interface RequestBody$UpdateRepository {
+export interface RequestBody$RepositoryService_UpdateRepository {
     "application/json": Schemas.v1alpha1Repository;
 }
-export interface Response$UpdateRepository$Status$200 {
+export interface Response$RepositoryService_UpdateRepository$Status$200 {
     "application/json": Schemas.v1alpha1Repository;
 }
-export interface Parameter$GetMixin7 {
+export interface Response$RepositoryService_UpdateRepository$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_Get {
     /** Repo URL for query */
     repo: string;
     /** Whether to force a cache refresh on repo's connection state. */
     forceRefresh?: boolean;
 }
-export interface Response$GetMixin7$Status$200 {
+export interface Response$RepositoryService_Get$Status$200 {
     "application/json": Schemas.v1alpha1Repository;
 }
-export interface Parameter$DeleteRepository {
+export interface Response$RepositoryService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_DeleteRepository {
     /** Repo URL for query */
     repo: string;
     /** Whether to force a cache refresh on repo's connection state. */
     forceRefresh?: boolean;
 }
-export interface Response$DeleteRepository$Status$200 {
+export interface Response$RepositoryService_DeleteRepository$Status$200 {
     "application/json": Schemas.repositoryRepoResponse;
 }
-export interface Parameter$ListApps {
+export interface Response$RepositoryService_DeleteRepository$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_ListApps {
     repo: string;
     revision?: string;
+    appName?: string;
+    appProject?: string;
 }
-export interface Response$ListApps$Status$200 {
+export interface Response$RepositoryService_ListApps$Status$200 {
     "application/json": Schemas.repositoryRepoAppsResponse;
 }
-export interface Parameter$GetHelmCharts {
+export interface Response$RepositoryService_ListApps$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_GetHelmCharts {
     /** Repo URL for query */
     repo: string;
     /** Whether to force a cache refresh on repo's connection state. */
     forceRefresh?: boolean;
 }
-export interface Response$GetHelmCharts$Status$200 {
+export interface Response$RepositoryService_GetHelmCharts$Status$200 {
     "application/json": Schemas.repositoryHelmChartsResponse;
 }
-export interface Parameter$ListRefs {
+export interface Response$RepositoryService_GetHelmCharts$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_ListRefs {
     /** Repo URL for query */
     repo: string;
     /** Whether to force a cache refresh on repo's connection state. */
     forceRefresh?: boolean;
 }
-export interface Response$ListRefs$Status$200 {
+export interface Response$RepositoryService_ListRefs$Status$200 {
     "application/json": Schemas.repositoryRefs;
 }
-export interface Parameter$ValidateAccess {
+export interface Response$RepositoryService_ListRefs$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_ValidateAccess {
     /** The URL to the repo */
     repo: string;
+    /** Username for accessing repo. */
+    username?: string;
+    /** Password for accessing repo. */
+    password?: string;
+    /** Private key data for accessing SSH repository. */
+    sshPrivateKey?: string;
+    /** Whether to skip certificate or host key validation. */
+    insecure?: boolean;
+    /** TLS client cert data for accessing HTTPS repository. */
+    tlsClientCertData?: string;
+    /** TLS client cert key for accessing HTTPS repository. */
+    tlsClientCertKey?: string;
+    /** The type of the repo. */
+    type?: string;
+    /** The name of the repo. */
+    name?: string;
+    /** Whether helm-oci support should be enabled for this repo. */
+    enableOci?: boolean;
+    /** Github App Private Key PEM data. */
+    githubAppPrivateKey?: string;
+    /** Github App ID of the app used to access the repo. */
+    githubAppID?: string;
+    /** Github App Installation ID of the installed GitHub App. */
+    githubAppInstallationID?: string;
+    /** Github App Enterprise base url if empty will default to https://api.github.com. */
+    githubAppEnterpriseBaseUrl?: string;
+    /** HTTP/HTTPS proxy to access the repository. */
+    proxy?: string;
+    /** Reference between project and repository that allow you automatically to be added as item inside SourceRepos project entity. */
+    project?: string;
 }
-export interface RequestBody$ValidateAccess {
+export interface RequestBody$RepositoryService_ValidateAccess {
     "application/json": string;
 }
-export interface Response$ValidateAccess$Status$200 {
+export interface Response$RepositoryService_ValidateAccess$Status$200 {
     "application/json": Schemas.repositoryRepoResponse;
 }
-export interface Parameter$GetAppDetails {
-    /** RepoURL is the repository URL of the application manifests */
+export interface Response$RepositoryService_ValidateAccess$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$RepositoryService_GetAppDetails {
+    /** RepoURL is the URL to the repository (Git or Helm) that contains the application manifests */
     "source.repoURL": string;
 }
-export interface RequestBody$GetAppDetails {
+export interface RequestBody$RepositoryService_GetAppDetails {
     "application/json": Schemas.repositoryRepoAppDetailsQuery;
 }
-export interface Response$GetAppDetails$Status$200 {
+export interface Response$RepositoryService_GetAppDetails$Status$200 {
     "application/json": Schemas.repositoryRepoAppDetailsResponse;
 }
-export interface RequestBody$CreateMixin8 {
+export interface Response$RepositoryService_GetAppDetails$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface RequestBody$SessionService_Create {
     "application/json": Schemas.sessionSessionCreateRequest;
 }
-export interface Response$CreateMixin8$Status$200 {
+export interface Response$SessionService_Create$Status$200 {
     "application/json": Schemas.sessionSessionResponse;
 }
-export interface Response$DeleteMixin8$Status$200 {
+export interface Response$SessionService_Create$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Response$SessionService_Delete$Status$200 {
     "application/json": Schemas.sessionSessionResponse;
 }
-export interface Response$GetUserInfo$Status$200 {
+export interface Response$SessionService_Delete$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Response$SessionService_GetUserInfo$Status$200 {
     "application/json": Schemas.sessionGetUserInfoResponse;
 }
-export interface Response$GetMixin10$Status$200 {
+export interface Response$SessionService_GetUserInfo$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Response$SettingsService_Get$Status$200 {
     "application/json": Schemas.clusterSettings;
 }
-export interface Parameter$Watch {
+export interface Response$SettingsService_Get$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_Watch {
     /** the application's name. */
     name?: string;
     /** forces application reconciliation if set to true. */
     refresh?: string;
     /** the project names to restrict returned list applications. */
-    project?: string[];
+    projects?: string[];
     /** when specified with a watch call, shows changes that occur after that particular version of a resource. */
     resourceVersion?: string;
-    /** the selector to to restrict returned list to applications only with matched labels. */
+    /** the selector to restrict returned list to applications only with matched labels. */
     selector?: string;
+    /** the repoURL to restrict returned list applications. */
+    repo?: string;
+    /** the project names to restrict returned list applications (legacy name for backwards-compatibility). */
+    project?: string[];
 }
-export interface Response$Watch$Status$200 {
+export interface Response$ApplicationService_Watch$Status$200 {
     "application/json": {
         error?: Schemas.runtimeStreamError;
         result?: Schemas.v1alpha1ApplicationWatchEvent;
     };
 }
-export interface Parameter$WatchResourceTree {
+export interface Response$ApplicationService_Watch$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Parameter$ApplicationService_WatchResourceTree {
     applicationName: string;
     namespace?: string;
     name?: string;
@@ -2178,331 +2723,351 @@ export interface Parameter$WatchResourceTree {
     group?: string;
     kind?: string;
 }
-export interface Response$WatchResourceTree$Status$200 {
+export interface Response$ApplicationService_WatchResourceTree$Status$200 {
     "application/json": {
         error?: Schemas.runtimeStreamError;
         result?: Schemas.v1alpha1ApplicationTree;
     };
 }
-export interface Response$Version$Status$200 {
+export interface Response$ApplicationService_WatchResourceTree$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export interface Response$VersionService_Version$Status$200 {
     "application/json": Schemas.versionVersionMessage;
 }
-export type ResponseContentType$ListAccounts = keyof Response$ListAccounts$Status$200;
-export type ResponseContentType$CanI = keyof Response$CanI$Status$200;
-export interface Params$CanI {
-    parameter: Parameter$CanI;
-}
-export type RequestContentType$UpdatePassword = keyof RequestBody$UpdatePassword;
-export type ResponseContentType$UpdatePassword = keyof Response$UpdatePassword$Status$200;
-export interface Params$UpdatePassword {
-    requestBody: RequestBody$UpdatePassword["application/json"];
-}
-export type ResponseContentType$GetAccount = keyof Response$GetAccount$Status$200;
-export interface Params$GetAccount {
-    parameter: Parameter$GetAccount;
-}
-export type RequestContentType$CreateToken = keyof RequestBody$CreateToken;
-export type ResponseContentType$CreateToken = keyof Response$CreateToken$Status$200;
-export interface Params$CreateToken {
-    parameter: Parameter$CreateToken;
-    requestBody: RequestBody$CreateToken["application/json"];
-}
-export type ResponseContentType$DeleteToken = keyof Response$DeleteToken$Status$200;
-export interface Params$DeleteToken {
-    parameter: Parameter$DeleteToken;
-}
-export type ResponseContentType$List = keyof Response$List$Status$200;
-export interface Params$List {
-    parameter: Parameter$List;
-}
-export type RequestContentType$Create = keyof RequestBody$Create;
-export type ResponseContentType$Create = keyof Response$Create$Status$200;
-export interface Params$Create {
-    requestBody: RequestBody$Create["application/json"];
-}
-export type RequestContentType$Update = keyof RequestBody$Update;
-export type ResponseContentType$Update = keyof Response$Update$Status$200;
-export interface Params$Update {
-    parameter: Parameter$Update;
-    requestBody: RequestBody$Update["application/json"];
-}
-export type ResponseContentType$ManagedResources = keyof Response$ManagedResources$Status$200;
-export interface Params$ManagedResources {
-    parameter: Parameter$ManagedResources;
-}
-export type ResponseContentType$ResourceTree = keyof Response$ResourceTree$Status$200;
-export interface Params$ResourceTree {
-    parameter: Parameter$ResourceTree;
-}
-export type ResponseContentType$Get = keyof Response$Get$Status$200;
-export interface Params$Get {
-    parameter: Parameter$Get;
-}
-export type ResponseContentType$Delete = keyof Response$Delete$Status$200;
-export interface Params$Delete {
-    parameter: Parameter$Delete;
-}
-export type RequestContentType$Patch = keyof RequestBody$Patch;
-export type ResponseContentType$Patch = keyof Response$Patch$Status$200;
-export interface Params$Patch {
-    parameter: Parameter$Patch;
-    requestBody: RequestBody$Patch["application/json"];
-}
-export type ResponseContentType$ListResourceEvents = keyof Response$ListResourceEvents$Status$200;
-export interface Params$ListResourceEvents {
-    parameter: Parameter$ListResourceEvents;
-}
-export type ResponseContentType$GetManifests = keyof Response$GetManifests$Status$200;
-export interface Params$GetManifests {
-    parameter: Parameter$GetManifests;
-}
-export type ResponseContentType$TerminateOperation = keyof Response$TerminateOperation$Status$200;
-export interface Params$TerminateOperation {
-    parameter: Parameter$TerminateOperation;
-}
-export type ResponseContentType$PodLogs = keyof Response$PodLogs$Status$200;
-export interface Params$PodLogs {
-    parameter: Parameter$PodLogs;
-}
-export type ResponseContentType$GetResource = keyof Response$GetResource$Status$200;
-export interface Params$GetResource {
-    parameter: Parameter$GetResource;
-}
-export type RequestContentType$PatchResource = keyof RequestBody$PatchResource;
-export type ResponseContentType$PatchResource = keyof Response$PatchResource$Status$200;
-export interface Params$PatchResource {
-    parameter: Parameter$PatchResource;
-    requestBody: RequestBody$PatchResource["application/json"];
-}
-export type ResponseContentType$DeleteResource = keyof Response$DeleteResource$Status$200;
-export interface Params$DeleteResource {
-    parameter: Parameter$DeleteResource;
-}
-export type ResponseContentType$ListResourceActions = keyof Response$ListResourceActions$Status$200;
-export interface Params$ListResourceActions {
-    parameter: Parameter$ListResourceActions;
-}
-export type RequestContentType$RunResourceAction = keyof RequestBody$RunResourceAction;
-export type ResponseContentType$RunResourceAction = keyof Response$RunResourceAction$Status$200;
-export interface Params$RunResourceAction {
-    parameter: Parameter$RunResourceAction;
-    requestBody: RequestBody$RunResourceAction["application/json"];
-}
-export type ResponseContentType$RevisionMetadata = keyof Response$RevisionMetadata$Status$200;
-export interface Params$RevisionMetadata {
-    parameter: Parameter$RevisionMetadata;
-}
-export type RequestContentType$Rollback = keyof RequestBody$Rollback;
-export type ResponseContentType$Rollback = keyof Response$Rollback$Status$200;
-export interface Params$Rollback {
-    parameter: Parameter$Rollback;
-    requestBody: RequestBody$Rollback["application/json"];
-}
-export type RequestContentType$UpdateSpec = keyof RequestBody$UpdateSpec;
-export type ResponseContentType$UpdateSpec = keyof Response$UpdateSpec$Status$200;
-export interface Params$UpdateSpec {
-    parameter: Parameter$UpdateSpec;
-    requestBody: RequestBody$UpdateSpec["application/json"];
-}
-export type RequestContentType$Sync = keyof RequestBody$Sync;
-export type ResponseContentType$Sync = keyof Response$Sync$Status$200;
-export interface Params$Sync {
-    parameter: Parameter$Sync;
-    requestBody: RequestBody$Sync["application/json"];
-}
-export type ResponseContentType$GetApplicationSyncWindows = keyof Response$GetApplicationSyncWindows$Status$200;
-export interface Params$GetApplicationSyncWindows {
-    parameter: Parameter$GetApplicationSyncWindows;
-}
-export type ResponseContentType$ListCertificates = keyof Response$ListCertificates$Status$200;
-export interface Params$ListCertificates {
-    parameter: Parameter$ListCertificates;
-}
-export type RequestContentType$CreateCertificate = keyof RequestBody$CreateCertificate;
-export type ResponseContentType$CreateCertificate = keyof Response$CreateCertificate$Status$200;
-export interface Params$CreateCertificate {
-    requestBody: RequestBody$CreateCertificate["application/json"];
-}
-export type ResponseContentType$DeleteCertificate = keyof Response$DeleteCertificate$Status$200;
-export interface Params$DeleteCertificate {
-    parameter: Parameter$DeleteCertificate;
-}
-export type ResponseContentType$ListMixin3 = keyof Response$ListMixin3$Status$200;
-export interface Params$ListMixin3 {
-    parameter: Parameter$ListMixin3;
-}
-export type RequestContentType$CreateMixin3 = keyof RequestBody$CreateMixin3;
-export type ResponseContentType$CreateMixin3 = keyof Response$CreateMixin3$Status$200;
-export interface Params$CreateMixin3 {
-    requestBody: RequestBody$CreateMixin3["application/json"];
-}
-export type RequestContentType$UpdateMixin3 = keyof RequestBody$UpdateMixin3;
-export type ResponseContentType$UpdateMixin3 = keyof Response$UpdateMixin3$Status$200;
-export interface Params$UpdateMixin3 {
-    parameter: Parameter$UpdateMixin3;
-    requestBody: RequestBody$UpdateMixin3["application/json"];
-}
-export type ResponseContentType$GetMixin3 = keyof Response$GetMixin3$Status$200;
-export interface Params$GetMixin3 {
-    parameter: Parameter$GetMixin3;
-}
-export type ResponseContentType$DeleteMixin3 = keyof Response$DeleteMixin3$Status$200;
-export interface Params$DeleteMixin3 {
-    parameter: Parameter$DeleteMixin3;
-}
-export type ResponseContentType$InvalidateCache = keyof Response$InvalidateCache$Status$200;
-export interface Params$InvalidateCache {
-    parameter: Parameter$InvalidateCache;
-}
-export type ResponseContentType$RotateAuth = keyof Response$RotateAuth$Status$200;
-export interface Params$RotateAuth {
-    parameter: Parameter$RotateAuth;
-}
-export type ResponseContentType$ListMixin4 = keyof Response$ListMixin4$Status$200;
-export interface Params$ListMixin4 {
-    parameter: Parameter$ListMixin4;
-}
-export type RequestContentType$CreateMixin4 = keyof RequestBody$CreateMixin4;
-export type ResponseContentType$CreateMixin4 = keyof Response$CreateMixin4$Status$200;
-export interface Params$CreateMixin4 {
-    requestBody: RequestBody$CreateMixin4["application/json"];
-}
-export type ResponseContentType$DeleteMixin4 = keyof Response$DeleteMixin4$Status$200;
-export interface Params$DeleteMixin4 {
-    parameter: Parameter$DeleteMixin4;
-}
-export type ResponseContentType$GetMixin4 = keyof Response$GetMixin4$Status$200;
-export interface Params$GetMixin4 {
-    parameter: Parameter$GetMixin4;
-}
-export type ResponseContentType$ListMixin5 = keyof Response$ListMixin5$Status$200;
-export interface Params$ListMixin5 {
-    parameter: Parameter$ListMixin5;
-}
-export type RequestContentType$CreateMixin5 = keyof RequestBody$CreateMixin5;
-export type ResponseContentType$CreateMixin5 = keyof Response$CreateMixin5$Status$200;
-export interface Params$CreateMixin5 {
-    requestBody: RequestBody$CreateMixin5["application/json"];
-}
-export type ResponseContentType$GetMixin5 = keyof Response$GetMixin5$Status$200;
-export interface Params$GetMixin5 {
-    parameter: Parameter$GetMixin5;
-}
-export type ResponseContentType$DeleteMixin5 = keyof Response$DeleteMixin5$Status$200;
-export interface Params$DeleteMixin5 {
-    parameter: Parameter$DeleteMixin5;
-}
-export type ResponseContentType$ListEvents = keyof Response$ListEvents$Status$200;
-export interface Params$ListEvents {
-    parameter: Parameter$ListEvents;
-}
-export type ResponseContentType$GetGlobalProjects = keyof Response$GetGlobalProjects$Status$200;
-export interface Params$GetGlobalProjects {
-    parameter: Parameter$GetGlobalProjects;
-}
-export type ResponseContentType$GetSyncWindowsState = keyof Response$GetSyncWindowsState$Status$200;
-export interface Params$GetSyncWindowsState {
-    parameter: Parameter$GetSyncWindowsState;
-}
-export type RequestContentType$UpdateMixin5 = keyof RequestBody$UpdateMixin5;
-export type ResponseContentType$UpdateMixin5 = keyof Response$UpdateMixin5$Status$200;
-export interface Params$UpdateMixin5 {
-    parameter: Parameter$UpdateMixin5;
-    requestBody: RequestBody$UpdateMixin5["application/json"];
-}
-export type RequestContentType$CreateTokenMixin5 = keyof RequestBody$CreateTokenMixin5;
-export type ResponseContentType$CreateTokenMixin5 = keyof Response$CreateTokenMixin5$Status$200;
-export interface Params$CreateTokenMixin5 {
-    parameter: Parameter$CreateTokenMixin5;
-    requestBody: RequestBody$CreateTokenMixin5["application/json"];
-}
-export type ResponseContentType$DeleteTokenMixin5 = keyof Response$DeleteTokenMixin5$Status$200;
-export interface Params$DeleteTokenMixin5 {
-    parameter: Parameter$DeleteTokenMixin5;
-}
-export type ResponseContentType$ListRepositoryCredentials = keyof Response$ListRepositoryCredentials$Status$200;
-export interface Params$ListRepositoryCredentials {
-    parameter: Parameter$ListRepositoryCredentials;
-}
-export type RequestContentType$CreateRepositoryCredentials = keyof RequestBody$CreateRepositoryCredentials;
-export type ResponseContentType$CreateRepositoryCredentials = keyof Response$CreateRepositoryCredentials$Status$200;
-export interface Params$CreateRepositoryCredentials {
-    requestBody: RequestBody$CreateRepositoryCredentials["application/json"];
-}
-export type RequestContentType$UpdateRepositoryCredentials = keyof RequestBody$UpdateRepositoryCredentials;
-export type ResponseContentType$UpdateRepositoryCredentials = keyof Response$UpdateRepositoryCredentials$Status$200;
-export interface Params$UpdateRepositoryCredentials {
-    parameter: Parameter$UpdateRepositoryCredentials;
-    requestBody: RequestBody$UpdateRepositoryCredentials["application/json"];
-}
-export type ResponseContentType$DeleteRepositoryCredentials = keyof Response$DeleteRepositoryCredentials$Status$200;
-export interface Params$DeleteRepositoryCredentials {
-    parameter: Parameter$DeleteRepositoryCredentials;
-}
-export type ResponseContentType$ListRepositories = keyof Response$ListRepositories$Status$200;
-export interface Params$ListRepositories {
-    parameter: Parameter$ListRepositories;
-}
-export type RequestContentType$CreateRepository = keyof RequestBody$CreateRepository;
-export type ResponseContentType$CreateRepository = keyof Response$CreateRepository$Status$200;
-export interface Params$CreateRepository {
-    requestBody: RequestBody$CreateRepository["application/json"];
-}
-export type RequestContentType$UpdateRepository = keyof RequestBody$UpdateRepository;
-export type ResponseContentType$UpdateRepository = keyof Response$UpdateRepository$Status$200;
-export interface Params$UpdateRepository {
-    parameter: Parameter$UpdateRepository;
-    requestBody: RequestBody$UpdateRepository["application/json"];
-}
-export type ResponseContentType$GetMixin7 = keyof Response$GetMixin7$Status$200;
-export interface Params$GetMixin7 {
-    parameter: Parameter$GetMixin7;
-}
-export type ResponseContentType$DeleteRepository = keyof Response$DeleteRepository$Status$200;
-export interface Params$DeleteRepository {
-    parameter: Parameter$DeleteRepository;
-}
-export type ResponseContentType$ListApps = keyof Response$ListApps$Status$200;
-export interface Params$ListApps {
-    parameter: Parameter$ListApps;
-}
-export type ResponseContentType$GetHelmCharts = keyof Response$GetHelmCharts$Status$200;
-export interface Params$GetHelmCharts {
-    parameter: Parameter$GetHelmCharts;
-}
-export type ResponseContentType$ListRefs = keyof Response$ListRefs$Status$200;
-export interface Params$ListRefs {
-    parameter: Parameter$ListRefs;
-}
-export type RequestContentType$ValidateAccess = keyof RequestBody$ValidateAccess;
-export type ResponseContentType$ValidateAccess = keyof Response$ValidateAccess$Status$200;
-export interface Params$ValidateAccess {
-    parameter: Parameter$ValidateAccess;
-    requestBody: RequestBody$ValidateAccess["application/json"];
-}
-export type RequestContentType$GetAppDetails = keyof RequestBody$GetAppDetails;
-export type ResponseContentType$GetAppDetails = keyof Response$GetAppDetails$Status$200;
-export interface Params$GetAppDetails {
-    parameter: Parameter$GetAppDetails;
-    requestBody: RequestBody$GetAppDetails["application/json"];
-}
-export type RequestContentType$CreateMixin8 = keyof RequestBody$CreateMixin8;
-export type ResponseContentType$CreateMixin8 = keyof Response$CreateMixin8$Status$200;
-export interface Params$CreateMixin8 {
-    requestBody: RequestBody$CreateMixin8["application/json"];
-}
-export type ResponseContentType$DeleteMixin8 = keyof Response$DeleteMixin8$Status$200;
-export type ResponseContentType$GetUserInfo = keyof Response$GetUserInfo$Status$200;
-export type ResponseContentType$GetMixin10 = keyof Response$GetMixin10$Status$200;
-export type ResponseContentType$Watch = keyof Response$Watch$Status$200;
-export interface Params$Watch {
-    parameter: Parameter$Watch;
-}
-export type ResponseContentType$WatchResourceTree = keyof Response$WatchResourceTree$Status$200;
-export interface Params$WatchResourceTree {
-    parameter: Parameter$WatchResourceTree;
-}
-export type ResponseContentType$Version = keyof Response$Version$Status$200;
+export interface Response$VersionService_Version$Status$default {
+    "application/json": Schemas.runtimeError;
+}
+export type ResponseContentType$AccountService_ListAccounts = keyof Response$AccountService_ListAccounts$Status$200;
+export type ResponseContentType$AccountService_CanI = keyof Response$AccountService_CanI$Status$200;
+export interface Params$AccountService_CanI {
+    parameter: Parameter$AccountService_CanI;
+}
+export type RequestContentType$AccountService_UpdatePassword = keyof RequestBody$AccountService_UpdatePassword;
+export type ResponseContentType$AccountService_UpdatePassword = keyof Response$AccountService_UpdatePassword$Status$200;
+export interface Params$AccountService_UpdatePassword {
+    requestBody: RequestBody$AccountService_UpdatePassword["application/json"];
+}
+export type ResponseContentType$AccountService_GetAccount = keyof Response$AccountService_GetAccount$Status$200;
+export interface Params$AccountService_GetAccount {
+    parameter: Parameter$AccountService_GetAccount;
+}
+export type RequestContentType$AccountService_CreateToken = keyof RequestBody$AccountService_CreateToken;
+export type ResponseContentType$AccountService_CreateToken = keyof Response$AccountService_CreateToken$Status$200;
+export interface Params$AccountService_CreateToken {
+    parameter: Parameter$AccountService_CreateToken;
+    requestBody: RequestBody$AccountService_CreateToken["application/json"];
+}
+export type ResponseContentType$AccountService_DeleteToken = keyof Response$AccountService_DeleteToken$Status$200;
+export interface Params$AccountService_DeleteToken {
+    parameter: Parameter$AccountService_DeleteToken;
+}
+export type ResponseContentType$ApplicationService_List = keyof Response$ApplicationService_List$Status$200;
+export interface Params$ApplicationService_List {
+    parameter: Parameter$ApplicationService_List;
+}
+export type RequestContentType$ApplicationService_Create = keyof RequestBody$ApplicationService_Create;
+export type ResponseContentType$ApplicationService_Create = keyof Response$ApplicationService_Create$Status$200;
+export interface Params$ApplicationService_Create {
+    parameter: Parameter$ApplicationService_Create;
+    requestBody: RequestBody$ApplicationService_Create["application/json"];
+}
+export type RequestContentType$ApplicationService_Update = keyof RequestBody$ApplicationService_Update;
+export type ResponseContentType$ApplicationService_Update = keyof Response$ApplicationService_Update$Status$200;
+export interface Params$ApplicationService_Update {
+    parameter: Parameter$ApplicationService_Update;
+    requestBody: RequestBody$ApplicationService_Update["application/json"];
+}
+export type ResponseContentType$ApplicationService_ManagedResources = keyof Response$ApplicationService_ManagedResources$Status$200;
+export interface Params$ApplicationService_ManagedResources {
+    parameter: Parameter$ApplicationService_ManagedResources;
+}
+export type ResponseContentType$ApplicationService_ResourceTree = keyof Response$ApplicationService_ResourceTree$Status$200;
+export interface Params$ApplicationService_ResourceTree {
+    parameter: Parameter$ApplicationService_ResourceTree;
+}
+export type ResponseContentType$ApplicationService_Get = keyof Response$ApplicationService_Get$Status$200;
+export interface Params$ApplicationService_Get {
+    parameter: Parameter$ApplicationService_Get;
+}
+export type ResponseContentType$ApplicationService_Delete = keyof Response$ApplicationService_Delete$Status$200;
+export interface Params$ApplicationService_Delete {
+    parameter: Parameter$ApplicationService_Delete;
+}
+export type RequestContentType$ApplicationService_Patch = keyof RequestBody$ApplicationService_Patch;
+export type ResponseContentType$ApplicationService_Patch = keyof Response$ApplicationService_Patch$Status$200;
+export interface Params$ApplicationService_Patch {
+    parameter: Parameter$ApplicationService_Patch;
+    requestBody: RequestBody$ApplicationService_Patch["application/json"];
+}
+export type ResponseContentType$ApplicationService_ListResourceEvents = keyof Response$ApplicationService_ListResourceEvents$Status$200;
+export interface Params$ApplicationService_ListResourceEvents {
+    parameter: Parameter$ApplicationService_ListResourceEvents;
+}
+export type ResponseContentType$ApplicationService_PodLogs2 = keyof Response$ApplicationService_PodLogs2$Status$200;
+export interface Params$ApplicationService_PodLogs2 {
+    parameter: Parameter$ApplicationService_PodLogs2;
+}
+export type ResponseContentType$ApplicationService_GetManifests = keyof Response$ApplicationService_GetManifests$Status$200;
+export interface Params$ApplicationService_GetManifests {
+    parameter: Parameter$ApplicationService_GetManifests;
+}
+export type ResponseContentType$ApplicationService_TerminateOperation = keyof Response$ApplicationService_TerminateOperation$Status$200;
+export interface Params$ApplicationService_TerminateOperation {
+    parameter: Parameter$ApplicationService_TerminateOperation;
+}
+export type ResponseContentType$ApplicationService_PodLogs = keyof Response$ApplicationService_PodLogs$Status$200;
+export interface Params$ApplicationService_PodLogs {
+    parameter: Parameter$ApplicationService_PodLogs;
+}
+export type ResponseContentType$ApplicationService_GetResource = keyof Response$ApplicationService_GetResource$Status$200;
+export interface Params$ApplicationService_GetResource {
+    parameter: Parameter$ApplicationService_GetResource;
+}
+export type RequestContentType$ApplicationService_PatchResource = keyof RequestBody$ApplicationService_PatchResource;
+export type ResponseContentType$ApplicationService_PatchResource = keyof Response$ApplicationService_PatchResource$Status$200;
+export interface Params$ApplicationService_PatchResource {
+    parameter: Parameter$ApplicationService_PatchResource;
+    requestBody: RequestBody$ApplicationService_PatchResource["application/json"];
+}
+export type ResponseContentType$ApplicationService_DeleteResource = keyof Response$ApplicationService_DeleteResource$Status$200;
+export interface Params$ApplicationService_DeleteResource {
+    parameter: Parameter$ApplicationService_DeleteResource;
+}
+export type ResponseContentType$ApplicationService_ListResourceActions = keyof Response$ApplicationService_ListResourceActions$Status$200;
+export interface Params$ApplicationService_ListResourceActions {
+    parameter: Parameter$ApplicationService_ListResourceActions;
+}
+export type RequestContentType$ApplicationService_RunResourceAction = keyof RequestBody$ApplicationService_RunResourceAction;
+export type ResponseContentType$ApplicationService_RunResourceAction = keyof Response$ApplicationService_RunResourceAction$Status$200;
+export interface Params$ApplicationService_RunResourceAction {
+    parameter: Parameter$ApplicationService_RunResourceAction;
+    requestBody: RequestBody$ApplicationService_RunResourceAction["application/json"];
+}
+export type ResponseContentType$ApplicationService_RevisionMetadata = keyof Response$ApplicationService_RevisionMetadata$Status$200;
+export interface Params$ApplicationService_RevisionMetadata {
+    parameter: Parameter$ApplicationService_RevisionMetadata;
+}
+export type RequestContentType$ApplicationService_Rollback = keyof RequestBody$ApplicationService_Rollback;
+export type ResponseContentType$ApplicationService_Rollback = keyof Response$ApplicationService_Rollback$Status$200;
+export interface Params$ApplicationService_Rollback {
+    parameter: Parameter$ApplicationService_Rollback;
+    requestBody: RequestBody$ApplicationService_Rollback["application/json"];
+}
+export type RequestContentType$ApplicationService_UpdateSpec = keyof RequestBody$ApplicationService_UpdateSpec;
+export type ResponseContentType$ApplicationService_UpdateSpec = keyof Response$ApplicationService_UpdateSpec$Status$200;
+export interface Params$ApplicationService_UpdateSpec {
+    parameter: Parameter$ApplicationService_UpdateSpec;
+    requestBody: RequestBody$ApplicationService_UpdateSpec["application/json"];
+}
+export type RequestContentType$ApplicationService_Sync = keyof RequestBody$ApplicationService_Sync;
+export type ResponseContentType$ApplicationService_Sync = keyof Response$ApplicationService_Sync$Status$200;
+export interface Params$ApplicationService_Sync {
+    parameter: Parameter$ApplicationService_Sync;
+    requestBody: RequestBody$ApplicationService_Sync["application/json"];
+}
+export type ResponseContentType$ApplicationService_GetApplicationSyncWindows = keyof Response$ApplicationService_GetApplicationSyncWindows$Status$200;
+export interface Params$ApplicationService_GetApplicationSyncWindows {
+    parameter: Parameter$ApplicationService_GetApplicationSyncWindows;
+}
+export type ResponseContentType$CertificateService_ListCertificates = keyof Response$CertificateService_ListCertificates$Status$200;
+export interface Params$CertificateService_ListCertificates {
+    parameter: Parameter$CertificateService_ListCertificates;
+}
+export type RequestContentType$CertificateService_CreateCertificate = keyof RequestBody$CertificateService_CreateCertificate;
+export type ResponseContentType$CertificateService_CreateCertificate = keyof Response$CertificateService_CreateCertificate$Status$200;
+export interface Params$CertificateService_CreateCertificate {
+    parameter: Parameter$CertificateService_CreateCertificate;
+    requestBody: RequestBody$CertificateService_CreateCertificate["application/json"];
+}
+export type ResponseContentType$CertificateService_DeleteCertificate = keyof Response$CertificateService_DeleteCertificate$Status$200;
+export interface Params$CertificateService_DeleteCertificate {
+    parameter: Parameter$CertificateService_DeleteCertificate;
+}
+export type ResponseContentType$ClusterService_List = keyof Response$ClusterService_List$Status$200;
+export interface Params$ClusterService_List {
+    parameter: Parameter$ClusterService_List;
+}
+export type RequestContentType$ClusterService_Create = keyof RequestBody$ClusterService_Create;
+export type ResponseContentType$ClusterService_Create = keyof Response$ClusterService_Create$Status$200;
+export interface Params$ClusterService_Create {
+    parameter: Parameter$ClusterService_Create;
+    requestBody: RequestBody$ClusterService_Create["application/json"];
+}
+export type ResponseContentType$ClusterService_Get = keyof Response$ClusterService_Get$Status$200;
+export interface Params$ClusterService_Get {
+    parameter: Parameter$ClusterService_Get;
+}
+export type RequestContentType$ClusterService_Update = keyof RequestBody$ClusterService_Update;
+export type ResponseContentType$ClusterService_Update = keyof Response$ClusterService_Update$Status$200;
+export interface Params$ClusterService_Update {
+    parameter: Parameter$ClusterService_Update;
+    requestBody: RequestBody$ClusterService_Update["application/json"];
+}
+export type ResponseContentType$ClusterService_Delete = keyof Response$ClusterService_Delete$Status$200;
+export interface Params$ClusterService_Delete {
+    parameter: Parameter$ClusterService_Delete;
+}
+export type ResponseContentType$ClusterService_InvalidateCache = keyof Response$ClusterService_InvalidateCache$Status$200;
+export interface Params$ClusterService_InvalidateCache {
+    parameter: Parameter$ClusterService_InvalidateCache;
+}
+export type ResponseContentType$ClusterService_RotateAuth = keyof Response$ClusterService_RotateAuth$Status$200;
+export interface Params$ClusterService_RotateAuth {
+    parameter: Parameter$ClusterService_RotateAuth;
+}
+export type ResponseContentType$GPGKeyService_List = keyof Response$GPGKeyService_List$Status$200;
+export interface Params$GPGKeyService_List {
+    parameter: Parameter$GPGKeyService_List;
+}
+export type RequestContentType$GPGKeyService_Create = keyof RequestBody$GPGKeyService_Create;
+export type ResponseContentType$GPGKeyService_Create = keyof Response$GPGKeyService_Create$Status$200;
+export interface Params$GPGKeyService_Create {
+    parameter: Parameter$GPGKeyService_Create;
+    requestBody: RequestBody$GPGKeyService_Create["application/json"];
+}
+export type ResponseContentType$GPGKeyService_Delete = keyof Response$GPGKeyService_Delete$Status$200;
+export interface Params$GPGKeyService_Delete {
+    parameter: Parameter$GPGKeyService_Delete;
+}
+export type ResponseContentType$GPGKeyService_Get = keyof Response$GPGKeyService_Get$Status$200;
+export interface Params$GPGKeyService_Get {
+    parameter: Parameter$GPGKeyService_Get;
+}
+export type ResponseContentType$ProjectService_List = keyof Response$ProjectService_List$Status$200;
+export interface Params$ProjectService_List {
+    parameter: Parameter$ProjectService_List;
+}
+export type RequestContentType$ProjectService_Create = keyof RequestBody$ProjectService_Create;
+export type ResponseContentType$ProjectService_Create = keyof Response$ProjectService_Create$Status$200;
+export interface Params$ProjectService_Create {
+    requestBody: RequestBody$ProjectService_Create["application/json"];
+}
+export type ResponseContentType$ProjectService_Get = keyof Response$ProjectService_Get$Status$200;
+export interface Params$ProjectService_Get {
+    parameter: Parameter$ProjectService_Get;
+}
+export type ResponseContentType$ProjectService_Delete = keyof Response$ProjectService_Delete$Status$200;
+export interface Params$ProjectService_Delete {
+    parameter: Parameter$ProjectService_Delete;
+}
+export type ResponseContentType$ProjectService_GetDetailedProject = keyof Response$ProjectService_GetDetailedProject$Status$200;
+export interface Params$ProjectService_GetDetailedProject {
+    parameter: Parameter$ProjectService_GetDetailedProject;
+}
+export type ResponseContentType$ProjectService_ListEvents = keyof Response$ProjectService_ListEvents$Status$200;
+export interface Params$ProjectService_ListEvents {
+    parameter: Parameter$ProjectService_ListEvents;
+}
+export type ResponseContentType$ProjectService_GetGlobalProjects = keyof Response$ProjectService_GetGlobalProjects$Status$200;
+export interface Params$ProjectService_GetGlobalProjects {
+    parameter: Parameter$ProjectService_GetGlobalProjects;
+}
+export type ResponseContentType$ProjectService_GetSyncWindowsState = keyof Response$ProjectService_GetSyncWindowsState$Status$200;
+export interface Params$ProjectService_GetSyncWindowsState {
+    parameter: Parameter$ProjectService_GetSyncWindowsState;
+}
+export type RequestContentType$ProjectService_Update = keyof RequestBody$ProjectService_Update;
+export type ResponseContentType$ProjectService_Update = keyof Response$ProjectService_Update$Status$200;
+export interface Params$ProjectService_Update {
+    parameter: Parameter$ProjectService_Update;
+    requestBody: RequestBody$ProjectService_Update["application/json"];
+}
+export type RequestContentType$ProjectService_CreateToken = keyof RequestBody$ProjectService_CreateToken;
+export type ResponseContentType$ProjectService_CreateToken = keyof Response$ProjectService_CreateToken$Status$200;
+export interface Params$ProjectService_CreateToken {
+    parameter: Parameter$ProjectService_CreateToken;
+    requestBody: RequestBody$ProjectService_CreateToken["application/json"];
+}
+export type ResponseContentType$ProjectService_DeleteToken = keyof Response$ProjectService_DeleteToken$Status$200;
+export interface Params$ProjectService_DeleteToken {
+    parameter: Parameter$ProjectService_DeleteToken;
+}
+export type ResponseContentType$RepoCredsService_ListRepositoryCredentials = keyof Response$RepoCredsService_ListRepositoryCredentials$Status$200;
+export interface Params$RepoCredsService_ListRepositoryCredentials {
+    parameter: Parameter$RepoCredsService_ListRepositoryCredentials;
+}
+export type RequestContentType$RepoCredsService_CreateRepositoryCredentials = keyof RequestBody$RepoCredsService_CreateRepositoryCredentials;
+export type ResponseContentType$RepoCredsService_CreateRepositoryCredentials = keyof Response$RepoCredsService_CreateRepositoryCredentials$Status$200;
+export interface Params$RepoCredsService_CreateRepositoryCredentials {
+    parameter: Parameter$RepoCredsService_CreateRepositoryCredentials;
+    requestBody: RequestBody$RepoCredsService_CreateRepositoryCredentials["application/json"];
+}
+export type RequestContentType$RepoCredsService_UpdateRepositoryCredentials = keyof RequestBody$RepoCredsService_UpdateRepositoryCredentials;
+export type ResponseContentType$RepoCredsService_UpdateRepositoryCredentials = keyof Response$RepoCredsService_UpdateRepositoryCredentials$Status$200;
+export interface Params$RepoCredsService_UpdateRepositoryCredentials {
+    parameter: Parameter$RepoCredsService_UpdateRepositoryCredentials;
+    requestBody: RequestBody$RepoCredsService_UpdateRepositoryCredentials["application/json"];
+}
+export type ResponseContentType$RepoCredsService_DeleteRepositoryCredentials = keyof Response$RepoCredsService_DeleteRepositoryCredentials$Status$200;
+export interface Params$RepoCredsService_DeleteRepositoryCredentials {
+    parameter: Parameter$RepoCredsService_DeleteRepositoryCredentials;
+}
+export type ResponseContentType$RepositoryService_ListRepositories = keyof Response$RepositoryService_ListRepositories$Status$200;
+export interface Params$RepositoryService_ListRepositories {
+    parameter: Parameter$RepositoryService_ListRepositories;
+}
+export type RequestContentType$RepositoryService_CreateRepository = keyof RequestBody$RepositoryService_CreateRepository;
+export type ResponseContentType$RepositoryService_CreateRepository = keyof Response$RepositoryService_CreateRepository$Status$200;
+export interface Params$RepositoryService_CreateRepository {
+    parameter: Parameter$RepositoryService_CreateRepository;
+    requestBody: RequestBody$RepositoryService_CreateRepository["application/json"];
+}
+export type RequestContentType$RepositoryService_UpdateRepository = keyof RequestBody$RepositoryService_UpdateRepository;
+export type ResponseContentType$RepositoryService_UpdateRepository = keyof Response$RepositoryService_UpdateRepository$Status$200;
+export interface Params$RepositoryService_UpdateRepository {
+    parameter: Parameter$RepositoryService_UpdateRepository;
+    requestBody: RequestBody$RepositoryService_UpdateRepository["application/json"];
+}
+export type ResponseContentType$RepositoryService_Get = keyof Response$RepositoryService_Get$Status$200;
+export interface Params$RepositoryService_Get {
+    parameter: Parameter$RepositoryService_Get;
+}
+export type ResponseContentType$RepositoryService_DeleteRepository = keyof Response$RepositoryService_DeleteRepository$Status$200;
+export interface Params$RepositoryService_DeleteRepository {
+    parameter: Parameter$RepositoryService_DeleteRepository;
+}
+export type ResponseContentType$RepositoryService_ListApps = keyof Response$RepositoryService_ListApps$Status$200;
+export interface Params$RepositoryService_ListApps {
+    parameter: Parameter$RepositoryService_ListApps;
+}
+export type ResponseContentType$RepositoryService_GetHelmCharts = keyof Response$RepositoryService_GetHelmCharts$Status$200;
+export interface Params$RepositoryService_GetHelmCharts {
+    parameter: Parameter$RepositoryService_GetHelmCharts;
+}
+export type ResponseContentType$RepositoryService_ListRefs = keyof Response$RepositoryService_ListRefs$Status$200;
+export interface Params$RepositoryService_ListRefs {
+    parameter: Parameter$RepositoryService_ListRefs;
+}
+export type RequestContentType$RepositoryService_ValidateAccess = keyof RequestBody$RepositoryService_ValidateAccess;
+export type ResponseContentType$RepositoryService_ValidateAccess = keyof Response$RepositoryService_ValidateAccess$Status$200;
+export interface Params$RepositoryService_ValidateAccess {
+    parameter: Parameter$RepositoryService_ValidateAccess;
+    requestBody: RequestBody$RepositoryService_ValidateAccess["application/json"];
+}
+export type RequestContentType$RepositoryService_GetAppDetails = keyof RequestBody$RepositoryService_GetAppDetails;
+export type ResponseContentType$RepositoryService_GetAppDetails = keyof Response$RepositoryService_GetAppDetails$Status$200;
+export interface Params$RepositoryService_GetAppDetails {
+    parameter: Parameter$RepositoryService_GetAppDetails;
+    requestBody: RequestBody$RepositoryService_GetAppDetails["application/json"];
+}
+export type RequestContentType$SessionService_Create = keyof RequestBody$SessionService_Create;
+export type ResponseContentType$SessionService_Create = keyof Response$SessionService_Create$Status$200;
+export interface Params$SessionService_Create {
+    requestBody: RequestBody$SessionService_Create["application/json"];
+}
+export type ResponseContentType$SessionService_Delete = keyof Response$SessionService_Delete$Status$200;
+export type ResponseContentType$SessionService_GetUserInfo = keyof Response$SessionService_GetUserInfo$Status$200;
+export type ResponseContentType$SettingsService_Get = keyof Response$SettingsService_Get$Status$200;
+export type ResponseContentType$ApplicationService_Watch = keyof Response$ApplicationService_Watch$Status$200;
+export interface Params$ApplicationService_Watch {
+    parameter: Parameter$ApplicationService_Watch;
+}
+export type ResponseContentType$ApplicationService_WatchResourceTree = keyof Response$ApplicationService_WatchResourceTree$Status$200;
+export interface Params$ApplicationService_WatchResourceTree {
+    parameter: Parameter$ApplicationService_WatchResourceTree;
+}
+export type ResponseContentType$VersionService_Version = keyof Response$VersionService_Version$Status$200;
 export type HttpMethod = "GET" | "PUT" | "POST" | "DELETE" | "OPTIONS" | "HEAD" | "PATCH" | "TRACE";
 export interface ObjectLike {
     [key: string]: any;
@@ -2515,81 +3080,83 @@ export interface QueryParameter {
 export interface QueryParameters {
     [key: string]: QueryParameter;
 }
-export type SuccessResponses = Response$ListAccounts$Status$200 | Response$CanI$Status$200 | Response$UpdatePassword$Status$200 | Response$GetAccount$Status$200 | Response$CreateToken$Status$200 | Response$DeleteToken$Status$200 | Response$List$Status$200 | Response$Create$Status$200 | Response$Update$Status$200 | Response$ManagedResources$Status$200 | Response$ResourceTree$Status$200 | Response$Get$Status$200 | Response$Delete$Status$200 | Response$Patch$Status$200 | Response$ListResourceEvents$Status$200 | Response$GetManifests$Status$200 | Response$TerminateOperation$Status$200 | Response$PodLogs$Status$200 | Response$GetResource$Status$200 | Response$PatchResource$Status$200 | Response$DeleteResource$Status$200 | Response$ListResourceActions$Status$200 | Response$RunResourceAction$Status$200 | Response$RevisionMetadata$Status$200 | Response$Rollback$Status$200 | Response$UpdateSpec$Status$200 | Response$Sync$Status$200 | Response$GetApplicationSyncWindows$Status$200 | Response$ListCertificates$Status$200 | Response$CreateCertificate$Status$200 | Response$DeleteCertificate$Status$200 | Response$ListMixin3$Status$200 | Response$CreateMixin3$Status$200 | Response$UpdateMixin3$Status$200 | Response$GetMixin3$Status$200 | Response$DeleteMixin3$Status$200 | Response$InvalidateCache$Status$200 | Response$RotateAuth$Status$200 | Response$ListMixin4$Status$200 | Response$CreateMixin4$Status$200 | Response$DeleteMixin4$Status$200 | Response$GetMixin4$Status$200 | Response$ListMixin5$Status$200 | Response$CreateMixin5$Status$200 | Response$GetMixin5$Status$200 | Response$DeleteMixin5$Status$200 | Response$ListEvents$Status$200 | Response$GetGlobalProjects$Status$200 | Response$GetSyncWindowsState$Status$200 | Response$UpdateMixin5$Status$200 | Response$CreateTokenMixin5$Status$200 | Response$DeleteTokenMixin5$Status$200 | Response$ListRepositoryCredentials$Status$200 | Response$CreateRepositoryCredentials$Status$200 | Response$UpdateRepositoryCredentials$Status$200 | Response$DeleteRepositoryCredentials$Status$200 | Response$ListRepositories$Status$200 | Response$CreateRepository$Status$200 | Response$UpdateRepository$Status$200 | Response$GetMixin7$Status$200 | Response$DeleteRepository$Status$200 | Response$ListApps$Status$200 | Response$GetHelmCharts$Status$200 | Response$ListRefs$Status$200 | Response$ValidateAccess$Status$200 | Response$GetAppDetails$Status$200 | Response$CreateMixin8$Status$200 | Response$DeleteMixin8$Status$200 | Response$GetUserInfo$Status$200 | Response$GetMixin10$Status$200 | Response$Watch$Status$200 | Response$WatchResourceTree$Status$200 | Response$Version$Status$200;
+export type SuccessResponses = Response$AccountService_ListAccounts$Status$200 | Response$AccountService_CanI$Status$200 | Response$AccountService_UpdatePassword$Status$200 | Response$AccountService_GetAccount$Status$200 | Response$AccountService_CreateToken$Status$200 | Response$AccountService_DeleteToken$Status$200 | Response$ApplicationService_List$Status$200 | Response$ApplicationService_Create$Status$200 | Response$ApplicationService_Update$Status$200 | Response$ApplicationService_ManagedResources$Status$200 | Response$ApplicationService_ResourceTree$Status$200 | Response$ApplicationService_Get$Status$200 | Response$ApplicationService_Delete$Status$200 | Response$ApplicationService_Patch$Status$200 | Response$ApplicationService_ListResourceEvents$Status$200 | Response$ApplicationService_PodLogs2$Status$200 | Response$ApplicationService_GetManifests$Status$200 | Response$ApplicationService_TerminateOperation$Status$200 | Response$ApplicationService_PodLogs$Status$200 | Response$ApplicationService_GetResource$Status$200 | Response$ApplicationService_PatchResource$Status$200 | Response$ApplicationService_DeleteResource$Status$200 | Response$ApplicationService_ListResourceActions$Status$200 | Response$ApplicationService_RunResourceAction$Status$200 | Response$ApplicationService_RevisionMetadata$Status$200 | Response$ApplicationService_Rollback$Status$200 | Response$ApplicationService_UpdateSpec$Status$200 | Response$ApplicationService_Sync$Status$200 | Response$ApplicationService_GetApplicationSyncWindows$Status$200 | Response$CertificateService_ListCertificates$Status$200 | Response$CertificateService_CreateCertificate$Status$200 | Response$CertificateService_DeleteCertificate$Status$200 | Response$ClusterService_List$Status$200 | Response$ClusterService_Create$Status$200 | Response$ClusterService_Get$Status$200 | Response$ClusterService_Update$Status$200 | Response$ClusterService_Delete$Status$200 | Response$ClusterService_InvalidateCache$Status$200 | Response$ClusterService_RotateAuth$Status$200 | Response$GPGKeyService_List$Status$200 | Response$GPGKeyService_Create$Status$200 | Response$GPGKeyService_Delete$Status$200 | Response$GPGKeyService_Get$Status$200 | Response$ProjectService_List$Status$200 | Response$ProjectService_Create$Status$200 | Response$ProjectService_Get$Status$200 | Response$ProjectService_Delete$Status$200 | Response$ProjectService_GetDetailedProject$Status$200 | Response$ProjectService_ListEvents$Status$200 | Response$ProjectService_GetGlobalProjects$Status$200 | Response$ProjectService_GetSyncWindowsState$Status$200 | Response$ProjectService_Update$Status$200 | Response$ProjectService_CreateToken$Status$200 | Response$ProjectService_DeleteToken$Status$200 | Response$RepoCredsService_ListRepositoryCredentials$Status$200 | Response$RepoCredsService_CreateRepositoryCredentials$Status$200 | Response$RepoCredsService_UpdateRepositoryCredentials$Status$200 | Response$RepoCredsService_DeleteRepositoryCredentials$Status$200 | Response$RepositoryService_ListRepositories$Status$200 | Response$RepositoryService_CreateRepository$Status$200 | Response$RepositoryService_UpdateRepository$Status$200 | Response$RepositoryService_Get$Status$200 | Response$RepositoryService_DeleteRepository$Status$200 | Response$RepositoryService_ListApps$Status$200 | Response$RepositoryService_GetHelmCharts$Status$200 | Response$RepositoryService_ListRefs$Status$200 | Response$RepositoryService_ValidateAccess$Status$200 | Response$RepositoryService_GetAppDetails$Status$200 | Response$SessionService_Create$Status$200 | Response$SessionService_Delete$Status$200 | Response$SessionService_GetUserInfo$Status$200 | Response$SettingsService_Get$Status$200 | Response$ApplicationService_Watch$Status$200 | Response$ApplicationService_WatchResourceTree$Status$200 | Response$VersionService_Version$Status$200;
 export namespace ErrorResponse {
-    export type ListAccounts = void;
-    export type CanI = void;
-    export type UpdatePassword = void;
-    export type GetAccount = void;
-    export type CreateToken = void;
-    export type DeleteToken = void;
-    export type List = void;
-    export type Create = void;
-    export type Update = void;
-    export type ManagedResources = void;
-    export type ResourceTree = void;
-    export type Get = void;
-    export type Delete = void;
-    export type Patch = void;
-    export type ListResourceEvents = void;
-    export type GetManifests = void;
-    export type TerminateOperation = void;
-    export type PodLogs = void;
-    export type GetResource = void;
-    export type PatchResource = void;
-    export type DeleteResource = void;
-    export type ListResourceActions = void;
-    export type RunResourceAction = void;
-    export type RevisionMetadata = void;
-    export type Rollback = void;
-    export type UpdateSpec = void;
-    export type Sync = void;
-    export type GetApplicationSyncWindows = void;
-    export type ListCertificates = void;
-    export type CreateCertificate = void;
-    export type DeleteCertificate = void;
-    export type ListMixin3 = void;
-    export type CreateMixin3 = void;
-    export type UpdateMixin3 = void;
-    export type GetMixin3 = void;
-    export type DeleteMixin3 = void;
-    export type InvalidateCache = void;
-    export type RotateAuth = void;
-    export type ListMixin4 = void;
-    export type CreateMixin4 = void;
-    export type DeleteMixin4 = void;
-    export type GetMixin4 = void;
-    export type ListMixin5 = void;
-    export type CreateMixin5 = void;
-    export type GetMixin5 = void;
-    export type DeleteMixin5 = void;
-    export type ListEvents = void;
-    export type GetGlobalProjects = void;
-    export type GetSyncWindowsState = void;
-    export type UpdateMixin5 = void;
-    export type CreateTokenMixin5 = void;
-    export type DeleteTokenMixin5 = void;
-    export type ListRepositoryCredentials = void;
-    export type CreateRepositoryCredentials = void;
-    export type UpdateRepositoryCredentials = void;
-    export type DeleteRepositoryCredentials = void;
-    export type ListRepositories = void;
-    export type CreateRepository = void;
-    export type UpdateRepository = void;
-    export type GetMixin7 = void;
-    export type DeleteRepository = void;
-    export type ListApps = void;
-    export type GetHelmCharts = void;
-    export type ListRefs = void;
-    export type ValidateAccess = void;
-    export type GetAppDetails = void;
-    export type CreateMixin8 = void;
-    export type DeleteMixin8 = void;
-    export type GetUserInfo = void;
-    export type GetMixin10 = void;
-    export type Watch = void;
-    export type WatchResourceTree = void;
-    export type Version = void;
+    export type AccountService_ListAccounts = void;
+    export type AccountService_CanI = void;
+    export type AccountService_UpdatePassword = void;
+    export type AccountService_GetAccount = void;
+    export type AccountService_CreateToken = void;
+    export type AccountService_DeleteToken = void;
+    export type ApplicationService_List = void;
+    export type ApplicationService_Create = void;
+    export type ApplicationService_Update = void;
+    export type ApplicationService_ManagedResources = void;
+    export type ApplicationService_ResourceTree = void;
+    export type ApplicationService_Get = void;
+    export type ApplicationService_Delete = void;
+    export type ApplicationService_Patch = void;
+    export type ApplicationService_ListResourceEvents = void;
+    export type ApplicationService_PodLogs2 = void;
+    export type ApplicationService_GetManifests = void;
+    export type ApplicationService_TerminateOperation = void;
+    export type ApplicationService_PodLogs = void;
+    export type ApplicationService_GetResource = void;
+    export type ApplicationService_PatchResource = void;
+    export type ApplicationService_DeleteResource = void;
+    export type ApplicationService_ListResourceActions = void;
+    export type ApplicationService_RunResourceAction = void;
+    export type ApplicationService_RevisionMetadata = void;
+    export type ApplicationService_Rollback = void;
+    export type ApplicationService_UpdateSpec = void;
+    export type ApplicationService_Sync = void;
+    export type ApplicationService_GetApplicationSyncWindows = void;
+    export type CertificateService_ListCertificates = void;
+    export type CertificateService_CreateCertificate = void;
+    export type CertificateService_DeleteCertificate = void;
+    export type ClusterService_List = void;
+    export type ClusterService_Create = void;
+    export type ClusterService_Get = void;
+    export type ClusterService_Update = void;
+    export type ClusterService_Delete = void;
+    export type ClusterService_InvalidateCache = void;
+    export type ClusterService_RotateAuth = void;
+    export type GPGKeyService_List = void;
+    export type GPGKeyService_Create = void;
+    export type GPGKeyService_Delete = void;
+    export type GPGKeyService_Get = void;
+    export type ProjectService_List = void;
+    export type ProjectService_Create = void;
+    export type ProjectService_Get = void;
+    export type ProjectService_Delete = void;
+    export type ProjectService_GetDetailedProject = void;
+    export type ProjectService_ListEvents = void;
+    export type ProjectService_GetGlobalProjects = void;
+    export type ProjectService_GetSyncWindowsState = void;
+    export type ProjectService_Update = void;
+    export type ProjectService_CreateToken = void;
+    export type ProjectService_DeleteToken = void;
+    export type RepoCredsService_ListRepositoryCredentials = void;
+    export type RepoCredsService_CreateRepositoryCredentials = void;
+    export type RepoCredsService_UpdateRepositoryCredentials = void;
+    export type RepoCredsService_DeleteRepositoryCredentials = void;
+    export type RepositoryService_ListRepositories = void;
+    export type RepositoryService_CreateRepository = void;
+    export type RepositoryService_UpdateRepository = void;
+    export type RepositoryService_Get = void;
+    export type RepositoryService_DeleteRepository = void;
+    export type RepositoryService_ListApps = void;
+    export type RepositoryService_GetHelmCharts = void;
+    export type RepositoryService_ListRefs = void;
+    export type RepositoryService_ValidateAccess = void;
+    export type RepositoryService_GetAppDetails = void;
+    export type SessionService_Create = void;
+    export type SessionService_Delete = void;
+    export type SessionService_GetUserInfo = void;
+    export type SettingsService_Get = void;
+    export type ApplicationService_Watch = void;
+    export type ApplicationService_WatchResourceTree = void;
+    export type VersionService_Version = void;
 }
 export interface Encoding {
     readonly contentType?: string;
@@ -2614,10 +3181,10 @@ export class Client<RequestOption> {
     constructor(private apiClient: ApiClient<RequestOption>, baseUrl: string) { this.baseUrl = baseUrl.replace(/\/$/, ""); }
     /**
      * ListAccounts returns the list of accounts
-     * operationId: ListAccounts
+     * operationId: AccountService_ListAccounts
      * Request URI: /api/v1/account
      */
-    public async ListAccounts(option?: RequestOption): Promise<Response$ListAccounts$Status$200["application/json"]> {
+    public async AccountService_ListAccounts(option?: RequestOption): Promise<Response$AccountService_ListAccounts$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/account`;
         const headers = {
             Accept: "application/json"
@@ -2630,10 +3197,10 @@ export class Client<RequestOption> {
     }
     /**
      * CanI checks if the current account has permission to perform an action
-     * operationId: CanI
+     * operationId: AccountService_CanI
      * Request URI: /api/v1/account/can-i/{resource}/{action}/{subresource}
      */
-    public async CanI(params: Params$CanI, option?: RequestOption): Promise<Response$CanI$Status$200["application/json"]> {
+    public async AccountService_CanI(params: Params$AccountService_CanI, option?: RequestOption): Promise<Response$AccountService_CanI$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/account/can-i/${params.parameter.resource}/${params.parameter.action}/${params.parameter.subresource}`;
         const headers = {
             Accept: "application/json"
@@ -2646,10 +3213,10 @@ export class Client<RequestOption> {
     }
     /**
      * UpdatePassword updates an account's password to a new value
-     * operationId: UpdatePassword
+     * operationId: AccountService_UpdatePassword
      * Request URI: /api/v1/account/password
      */
-    public async UpdatePassword(params: Params$UpdatePassword, option?: RequestOption): Promise<Response$UpdatePassword$Status$200["application/json"]> {
+    public async AccountService_UpdatePassword(params: Params$AccountService_UpdatePassword, option?: RequestOption): Promise<Response$AccountService_UpdatePassword$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/account/password`;
         const headers = {
             "Content-Type": "application/json",
@@ -2664,10 +3231,10 @@ export class Client<RequestOption> {
     }
     /**
      * GetAccount returns an account
-     * operationId: GetAccount
+     * operationId: AccountService_GetAccount
      * Request URI: /api/v1/account/{name}
      */
-    public async GetAccount(params: Params$GetAccount, option?: RequestOption): Promise<Response$GetAccount$Status$200["application/json"]> {
+    public async AccountService_GetAccount(params: Params$AccountService_GetAccount, option?: RequestOption): Promise<Response$AccountService_GetAccount$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/account/${params.parameter.name}`;
         const headers = {
             Accept: "application/json"
@@ -2680,10 +3247,10 @@ export class Client<RequestOption> {
     }
     /**
      * CreateToken creates a token
-     * operationId: CreateToken
+     * operationId: AccountService_CreateToken
      * Request URI: /api/v1/account/{name}/token
      */
-    public async CreateToken(params: Params$CreateToken, option?: RequestOption): Promise<Response$CreateToken$Status$200["application/json"]> {
+    public async AccountService_CreateToken(params: Params$AccountService_CreateToken, option?: RequestOption): Promise<Response$AccountService_CreateToken$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/account/${params.parameter.name}/token`;
         const headers = {
             "Content-Type": "application/json",
@@ -2698,10 +3265,10 @@ export class Client<RequestOption> {
     }
     /**
      * DeleteToken deletes a token
-     * operationId: DeleteToken
+     * operationId: AccountService_DeleteToken
      * Request URI: /api/v1/account/{name}/token/{id}
      */
-    public async DeleteToken(params: Params$DeleteToken, option?: RequestOption): Promise<Response$DeleteToken$Status$200["application/json"]> {
+    public async AccountService_DeleteToken(params: Params$AccountService_DeleteToken, option?: RequestOption): Promise<Response$AccountService_DeleteToken$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/account/${params.parameter.name}/token/${params.parameter.id}`;
         const headers = {
             Accept: "application/json"
@@ -2714,10 +3281,10 @@ export class Client<RequestOption> {
     }
     /**
      * List returns list of applications
-     * operationId: List
+     * operationId: ApplicationService_List
      * Request URI: /api/v1/applications
      */
-    public async List(params: Params$List, option?: RequestOption): Promise<Response$List$Status$200["application/json"]> {
+    public async ApplicationService_List(params: Params$ApplicationService_List, option?: RequestOption): Promise<Response$ApplicationService_List$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications`;
         const headers = {
             Accept: "application/json"
@@ -2725,9 +3292,11 @@ export class Client<RequestOption> {
         const queryParameters: QueryParameters = {
             name: { value: params.parameter.name, explode: false },
             refresh: { value: params.parameter.refresh, explode: false },
-            project: { value: params.parameter.project, explode: true },
+            projects: { value: params.parameter.projects, explode: true },
             resourceVersion: { value: params.parameter.resourceVersion, explode: false },
-            selector: { value: params.parameter.selector, explode: false }
+            selector: { value: params.parameter.selector, explode: false },
+            repo: { value: params.parameter.repo, explode: false },
+            project: { value: params.parameter.project, explode: true }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -2738,46 +3307,55 @@ export class Client<RequestOption> {
     }
     /**
      * Create creates an application
-     * operationId: Create
+     * operationId: ApplicationService_Create
      * Request URI: /api/v1/applications
      */
-    public async Create(params: Params$Create, option?: RequestOption): Promise<Response$Create$Status$200["application/json"]> {
+    public async ApplicationService_Create(params: Params$ApplicationService_Create, option?: RequestOption): Promise<Response$ApplicationService_Create$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false },
+            validate: { value: params.parameter.validate, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * Update updates an application
-     * operationId: Update
+     * operationId: ApplicationService_Update
      * Request URI: /api/v1/applications/{application.metadata.name}
      */
-    public async Update(params: Params$Update, option?: RequestOption): Promise<Response$Update$Status$200["application/json"]> {
+    public async ApplicationService_Update(params: Params$ApplicationService_Update, option?: RequestOption): Promise<Response$ApplicationService_Update$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter["application.metadata.name"]}`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            validate: { value: params.parameter.validate, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "PUT",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * ManagedResources returns list of managed resources
-     * operationId: ManagedResources
+     * operationId: ApplicationService_ManagedResources
      * Request URI: /api/v1/applications/{applicationName}/managed-resources
      */
-    public async ManagedResources(params: Params$ManagedResources, option?: RequestOption): Promise<Response$ManagedResources$Status$200["application/json"]> {
+    public async ApplicationService_ManagedResources(params: Params$ApplicationService_ManagedResources, option?: RequestOption): Promise<Response$ApplicationService_ManagedResources$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.applicationName}/managed-resources`;
         const headers = {
             Accept: "application/json"
@@ -2798,10 +3376,10 @@ export class Client<RequestOption> {
     }
     /**
      * ResourceTree returns resource tree
-     * operationId: ResourceTree
+     * operationId: ApplicationService_ResourceTree
      * Request URI: /api/v1/applications/{applicationName}/resource-tree
      */
-    public async ResourceTree(params: Params$ResourceTree, option?: RequestOption): Promise<Response$ResourceTree$Status$200["application/json"]> {
+    public async ApplicationService_ResourceTree(params: Params$ApplicationService_ResourceTree, option?: RequestOption): Promise<Response$ApplicationService_ResourceTree$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.applicationName}/resource-tree`;
         const headers = {
             Accept: "application/json"
@@ -2822,19 +3400,21 @@ export class Client<RequestOption> {
     }
     /**
      * Get returns an application by name
-     * operationId: Get
+     * operationId: ApplicationService_Get
      * Request URI: /api/v1/applications/{name}
      */
-    public async Get(params: Params$Get, option?: RequestOption): Promise<Response$Get$Status$200["application/json"]> {
+    public async ApplicationService_Get(params: Params$ApplicationService_Get, option?: RequestOption): Promise<Response$ApplicationService_Get$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
             refresh: { value: params.parameter.refresh, explode: false },
-            project: { value: params.parameter.project, explode: true },
+            projects: { value: params.parameter.projects, explode: true },
             resourceVersion: { value: params.parameter.resourceVersion, explode: false },
-            selector: { value: params.parameter.selector, explode: false }
+            selector: { value: params.parameter.selector, explode: false },
+            repo: { value: params.parameter.repo, explode: false },
+            project: { value: params.parameter.project, explode: true }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -2845,16 +3425,17 @@ export class Client<RequestOption> {
     }
     /**
      * Delete deletes an application
-     * operationId: Delete
+     * operationId: ApplicationService_Delete
      * Request URI: /api/v1/applications/{name}
      */
-    public async Delete(params: Params$Delete, option?: RequestOption): Promise<Response$Delete$Status$200["application/json"]> {
+    public async ApplicationService_Delete(params: Params$ApplicationService_Delete, option?: RequestOption): Promise<Response$ApplicationService_Delete$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            cascade: { value: params.parameter.cascade, explode: false }
+            cascade: { value: params.parameter.cascade, explode: false },
+            propagationPolicy: { value: params.parameter.propagationPolicy, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "DELETE",
@@ -2865,10 +3446,10 @@ export class Client<RequestOption> {
     }
     /**
      * Patch patch an application
-     * operationId: Patch
+     * operationId: ApplicationService_Patch
      * Request URI: /api/v1/applications/{name}
      */
-    public async Patch(params: Params$Patch, option?: RequestOption): Promise<Response$Patch$Status$200["application/json"]> {
+    public async ApplicationService_Patch(params: Params$ApplicationService_Patch, option?: RequestOption): Promise<Response$ApplicationService_Patch$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}`;
         const headers = {
             "Content-Type": "application/json",
@@ -2883,10 +3464,10 @@ export class Client<RequestOption> {
     }
     /**
      * ListResourceEvents returns a list of event resources
-     * operationId: ListResourceEvents
+     * operationId: ApplicationService_ListResourceEvents
      * Request URI: /api/v1/applications/{name}/events
      */
-    public async ListResourceEvents(params: Params$ListResourceEvents, option?: RequestOption): Promise<Response$ListResourceEvents$Status$200["application/json"]> {
+    public async ApplicationService_ListResourceEvents(params: Params$ApplicationService_ListResourceEvents, option?: RequestOption): Promise<Response$ApplicationService_ListResourceEvents$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/events`;
         const headers = {
             Accept: "application/json"
@@ -2904,11 +3485,44 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
+     * PodLogs returns stream of log entries for the specified pod. Pod
+     * operationId: ApplicationService_PodLogs2
+     * Request URI: /api/v1/applications/{name}/logs
+     */
+    public async ApplicationService_PodLogs2(params: Params$ApplicationService_PodLogs2, option?: RequestOption): Promise<Response$ApplicationService_PodLogs2$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/logs`;
+        const headers = {
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            namespace: { value: params.parameter.namespace, explode: false },
+            podName: { value: params.parameter.podName, explode: false },
+            container: { value: params.parameter.container, explode: false },
+            sinceSeconds: { value: params.parameter.sinceSeconds, explode: false },
+            "sinceTime.seconds": { value: params.parameter["sinceTime.seconds"], explode: false },
+            "sinceTime.nanos": { value: params.parameter["sinceTime.nanos"], explode: false },
+            tailLines: { value: params.parameter.tailLines, explode: false },
+            follow: { value: params.parameter.follow, explode: false },
+            untilTime: { value: params.parameter.untilTime, explode: false },
+            filter: { value: params.parameter.filter, explode: false },
+            kind: { value: params.parameter.kind, explode: false },
+            group: { value: params.parameter.group, explode: false },
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            previous: { value: params.parameter.previous, explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
      * GetManifests returns application manifests
-     * operationId: GetManifests
+     * operationId: ApplicationService_GetManifests
      * Request URI: /api/v1/applications/{name}/manifests
      */
-    public async GetManifests(params: Params$GetManifests, option?: RequestOption): Promise<Response$GetManifests$Status$200["application/json"]> {
+    public async ApplicationService_GetManifests(params: Params$ApplicationService_GetManifests, option?: RequestOption): Promise<Response$ApplicationService_GetManifests$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/manifests`;
         const headers = {
             Accept: "application/json"
@@ -2925,10 +3539,10 @@ export class Client<RequestOption> {
     }
     /**
      * TerminateOperation terminates the currently running operation
-     * operationId: TerminateOperation
+     * operationId: ApplicationService_TerminateOperation
      * Request URI: /api/v1/applications/{name}/operation
      */
-    public async TerminateOperation(params: Params$TerminateOperation, option?: RequestOption): Promise<Response$TerminateOperation$Status$200["application/json"]> {
+    public async ApplicationService_TerminateOperation(params: Params$ApplicationService_TerminateOperation, option?: RequestOption): Promise<Response$ApplicationService_TerminateOperation$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/operation`;
         const headers = {
             Accept: "application/json"
@@ -2941,10 +3555,10 @@ export class Client<RequestOption> {
     }
     /**
      * PodLogs returns stream of log entries for the specified pod. Pod
-     * operationId: PodLogs
+     * operationId: ApplicationService_PodLogs
      * Request URI: /api/v1/applications/{name}/pods/{podName}/logs
      */
-    public async PodLogs(params: Params$PodLogs, option?: RequestOption): Promise<Response$PodLogs$Status$200["application/json"]> {
+    public async ApplicationService_PodLogs(params: Params$ApplicationService_PodLogs, option?: RequestOption): Promise<Response$ApplicationService_PodLogs$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/pods/${params.parameter.podName}/logs`;
         const headers = {
             Accept: "application/json"
@@ -2956,7 +3570,13 @@ export class Client<RequestOption> {
             "sinceTime.seconds": { value: params.parameter["sinceTime.seconds"], explode: false },
             "sinceTime.nanos": { value: params.parameter["sinceTime.nanos"], explode: false },
             tailLines: { value: params.parameter.tailLines, explode: false },
-            follow: { value: params.parameter.follow, explode: false }
+            follow: { value: params.parameter.follow, explode: false },
+            untilTime: { value: params.parameter.untilTime, explode: false },
+            filter: { value: params.parameter.filter, explode: false },
+            kind: { value: params.parameter.kind, explode: false },
+            group: { value: params.parameter.group, explode: false },
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            previous: { value: params.parameter.previous, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -2967,10 +3587,10 @@ export class Client<RequestOption> {
     }
     /**
      * GetResource returns single application resource
-     * operationId: GetResource
+     * operationId: ApplicationService_GetResource
      * Request URI: /api/v1/applications/{name}/resource
      */
-    public async GetResource(params: Params$GetResource, option?: RequestOption): Promise<Response$GetResource$Status$200["application/json"]> {
+    public async ApplicationService_GetResource(params: Params$ApplicationService_GetResource, option?: RequestOption): Promise<Response$ApplicationService_GetResource$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/resource`;
         const headers = {
             Accept: "application/json"
@@ -2991,28 +3611,37 @@ export class Client<RequestOption> {
     }
     /**
      * PatchResource patch single application resource
-     * operationId: PatchResource
+     * operationId: ApplicationService_PatchResource
      * Request URI: /api/v1/applications/{name}/resource
      */
-    public async PatchResource(params: Params$PatchResource, option?: RequestOption): Promise<Response$PatchResource$Status$200["application/json"]> {
+    public async ApplicationService_PatchResource(params: Params$ApplicationService_PatchResource, option?: RequestOption): Promise<Response$ApplicationService_PatchResource$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/resource`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            namespace: { value: params.parameter.namespace, explode: false },
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            version: { value: params.parameter.version, explode: false },
+            group: { value: params.parameter.group, explode: false },
+            kind: { value: params.parameter.kind, explode: false },
+            patchType: { value: params.parameter.patchType, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * DeleteResource deletes a single application resource
-     * operationId: DeleteResource
+     * operationId: ApplicationService_DeleteResource
      * Request URI: /api/v1/applications/{name}/resource
      */
-    public async DeleteResource(params: Params$DeleteResource, option?: RequestOption): Promise<Response$DeleteResource$Status$200["application/json"]> {
+    public async ApplicationService_DeleteResource(params: Params$ApplicationService_DeleteResource, option?: RequestOption): Promise<Response$ApplicationService_DeleteResource$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/resource`;
         const headers = {
             Accept: "application/json"
@@ -3023,7 +3652,8 @@ export class Client<RequestOption> {
             version: { value: params.parameter.version, explode: false },
             group: { value: params.parameter.group, explode: false },
             kind: { value: params.parameter.kind, explode: false },
-            force: { value: params.parameter.force, explode: false }
+            force: { value: params.parameter.force, explode: false },
+            orphan: { value: params.parameter.orphan, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "DELETE",
@@ -3034,10 +3664,10 @@ export class Client<RequestOption> {
     }
     /**
      * ListResourceActions returns list of resource actions
-     * operationId: ListResourceActions
+     * operationId: ApplicationService_ListResourceActions
      * Request URI: /api/v1/applications/{name}/resource/actions
      */
-    public async ListResourceActions(params: Params$ListResourceActions, option?: RequestOption): Promise<Response$ListResourceActions$Status$200["application/json"]> {
+    public async ApplicationService_ListResourceActions(params: Params$ApplicationService_ListResourceActions, option?: RequestOption): Promise<Response$ApplicationService_ListResourceActions$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/resource/actions`;
         const headers = {
             Accept: "application/json"
@@ -3058,28 +3688,36 @@ export class Client<RequestOption> {
     }
     /**
      * RunResourceAction run resource action
-     * operationId: RunResourceAction
+     * operationId: ApplicationService_RunResourceAction
      * Request URI: /api/v1/applications/{name}/resource/actions
      */
-    public async RunResourceAction(params: Params$RunResourceAction, option?: RequestOption): Promise<Response$RunResourceAction$Status$200["application/json"]> {
+    public async ApplicationService_RunResourceAction(params: Params$ApplicationService_RunResourceAction, option?: RequestOption): Promise<Response$ApplicationService_RunResourceAction$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/resource/actions`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            namespace: { value: params.parameter.namespace, explode: false },
+            resourceName: { value: params.parameter.resourceName, explode: false },
+            version: { value: params.parameter.version, explode: false },
+            group: { value: params.parameter.group, explode: false },
+            kind: { value: params.parameter.kind, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * Get the meta-data (author, date, tags, message) for a specific revision of the application
-     * operationId: RevisionMetadata
+     * operationId: ApplicationService_RevisionMetadata
      * Request URI: /api/v1/applications/{name}/revisions/{revision}/metadata
      */
-    public async RevisionMetadata(params: Params$RevisionMetadata, option?: RequestOption): Promise<Response$RevisionMetadata$Status$200["application/json"]> {
+    public async ApplicationService_RevisionMetadata(params: Params$ApplicationService_RevisionMetadata, option?: RequestOption): Promise<Response$ApplicationService_RevisionMetadata$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/revisions/${params.parameter.revision}/metadata`;
         const headers = {
             Accept: "application/json"
@@ -3092,10 +3730,10 @@ export class Client<RequestOption> {
     }
     /**
      * Rollback syncs an application to its target state
-     * operationId: Rollback
+     * operationId: ApplicationService_Rollback
      * Request URI: /api/v1/applications/{name}/rollback
      */
-    public async Rollback(params: Params$Rollback, option?: RequestOption): Promise<Response$Rollback$Status$200["application/json"]> {
+    public async ApplicationService_Rollback(params: Params$ApplicationService_Rollback, option?: RequestOption): Promise<Response$ApplicationService_Rollback$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/rollback`;
         const headers = {
             "Content-Type": "application/json",
@@ -3110,28 +3748,32 @@ export class Client<RequestOption> {
     }
     /**
      * UpdateSpec updates an application spec
-     * operationId: UpdateSpec
+     * operationId: ApplicationService_UpdateSpec
      * Request URI: /api/v1/applications/{name}/spec
      */
-    public async UpdateSpec(params: Params$UpdateSpec, option?: RequestOption): Promise<Response$UpdateSpec$Status$200["application/json"]> {
+    public async ApplicationService_UpdateSpec(params: Params$ApplicationService_UpdateSpec, option?: RequestOption): Promise<Response$ApplicationService_UpdateSpec$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/spec`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            validate: { value: params.parameter.validate, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "PUT",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * Sync syncs an application to its target state
-     * operationId: Sync
+     * operationId: ApplicationService_Sync
      * Request URI: /api/v1/applications/{name}/sync
      */
-    public async Sync(params: Params$Sync, option?: RequestOption): Promise<Response$Sync$Status$200["application/json"]> {
+    public async ApplicationService_Sync(params: Params$ApplicationService_Sync, option?: RequestOption): Promise<Response$ApplicationService_Sync$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/sync`;
         const headers = {
             "Content-Type": "application/json",
@@ -3146,10 +3788,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get returns sync windows of the application
-     * operationId: GetApplicationSyncWindows
+     * operationId: ApplicationService_GetApplicationSyncWindows
      * Request URI: /api/v1/applications/{name}/syncwindows
      */
-    public async GetApplicationSyncWindows(params: Params$GetApplicationSyncWindows, option?: RequestOption): Promise<Response$GetApplicationSyncWindows$Status$200["application/json"]> {
+    public async ApplicationService_GetApplicationSyncWindows(params: Params$ApplicationService_GetApplicationSyncWindows, option?: RequestOption): Promise<Response$ApplicationService_GetApplicationSyncWindows$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/applications/${params.parameter.name}/syncwindows`;
         const headers = {
             Accept: "application/json"
@@ -3162,10 +3804,10 @@ export class Client<RequestOption> {
     }
     /**
      * List all available repository certificates
-     * operationId: ListCertificates
+     * operationId: CertificateService_ListCertificates
      * Request URI: /api/v1/certificates
      */
-    public async ListCertificates(params: Params$ListCertificates, option?: RequestOption): Promise<Response$ListCertificates$Status$200["application/json"]> {
+    public async CertificateService_ListCertificates(params: Params$CertificateService_ListCertificates, option?: RequestOption): Promise<Response$CertificateService_ListCertificates$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/certificates`;
         const headers = {
             Accept: "application/json"
@@ -3184,28 +3826,32 @@ export class Client<RequestOption> {
     }
     /**
      * Creates repository certificates on the server
-     * operationId: CreateCertificate
+     * operationId: CertificateService_CreateCertificate
      * Request URI: /api/v1/certificates
      */
-    public async CreateCertificate(params: Params$CreateCertificate, option?: RequestOption): Promise<Response$CreateCertificate$Status$200["application/json"]> {
+    public async CertificateService_CreateCertificate(params: Params$CertificateService_CreateCertificate, option?: RequestOption): Promise<Response$CertificateService_CreateCertificate$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/certificates`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * Delete the certificates that match the RepositoryCertificateQuery
-     * operationId: DeleteCertificate
+     * operationId: CertificateService_DeleteCertificate
      * Request URI: /api/v1/certificates
      */
-    public async DeleteCertificate(params: Params$DeleteCertificate, option?: RequestOption): Promise<Response$DeleteCertificate$Status$200["application/json"]> {
+    public async CertificateService_DeleteCertificate(params: Params$CertificateService_DeleteCertificate, option?: RequestOption): Promise<Response$CertificateService_DeleteCertificate$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/certificates`;
         const headers = {
             Accept: "application/json"
@@ -3224,17 +3870,19 @@ export class Client<RequestOption> {
     }
     /**
      * List returns list of clusters
-     * operationId: ListMixin3
+     * operationId: ClusterService_List
      * Request URI: /api/v1/clusters
      */
-    public async ListMixin3(params: Params$ListMixin3, option?: RequestOption): Promise<Response$ListMixin3$Status$200["application/json"]> {
+    public async ClusterService_List(params: Params$ClusterService_List, option?: RequestOption): Promise<Response$ClusterService_List$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/clusters`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
             server: { value: params.parameter.server, explode: false },
-            name: { value: params.parameter.name, explode: false }
+            name: { value: params.parameter.name, explode: false },
+            "id.type": { value: params.parameter["id.type"], explode: false },
+            "id.value": { value: params.parameter["id.value"], explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3245,52 +3893,40 @@ export class Client<RequestOption> {
     }
     /**
      * Create creates a cluster
-     * operationId: CreateMixin3
+     * operationId: ClusterService_Create
      * Request URI: /api/v1/clusters
      */
-    public async CreateMixin3(params: Params$CreateMixin3, option?: RequestOption): Promise<Response$CreateMixin3$Status$200["application/json"]> {
+    public async ClusterService_Create(params: Params$ClusterService_Create, option?: RequestOption): Promise<Response$ClusterService_Create$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/clusters`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
-        }, option);
-    }
-    /**
-     * Update updates a cluster
-     * operationId: UpdateMixin3
-     * Request URI: /api/v1/clusters/{cluster.server}
-     */
-    public async UpdateMixin3(params: Params$UpdateMixin3, option?: RequestOption): Promise<Response$UpdateMixin3$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["cluster.server"]}`;
-        const headers = {
-            "Content-Type": "application/json",
-            Accept: "application/json"
-        };
-        return this.apiClient.request({
-            httpMethod: "PUT",
-            url,
-            headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * Get returns a cluster by server address
-     * operationId: GetMixin3
-     * Request URI: /api/v1/clusters/{server}
+     * operationId: ClusterService_Get
+     * Request URI: /api/v1/clusters/{id.value}
      */
-    public async GetMixin3(params: Params$GetMixin3, option?: RequestOption): Promise<Response$GetMixin3$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}`;
+    public async ClusterService_Get(params: Params$ClusterService_Get, option?: RequestOption): Promise<Response$ClusterService_Get$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            name: { value: params.parameter.name, explode: false }
+            server: { value: params.parameter.server, explode: false },
+            name: { value: params.parameter.name, explode: false },
+            "id.type": { value: params.parameter["id.type"], explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3300,17 +3936,42 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
-     * Delete deletes a cluster
-     * operationId: DeleteMixin3
-     * Request URI: /api/v1/clusters/{server}
+     * Update updates a cluster
+     * operationId: ClusterService_Update
+     * Request URI: /api/v1/clusters/{id.value}
      */
-    public async DeleteMixin3(params: Params$DeleteMixin3, option?: RequestOption): Promise<Response$DeleteMixin3$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}`;
+    public async ClusterService_Update(params: Params$ClusterService_Update, option?: RequestOption): Promise<Response$ClusterService_Update$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}`;
+        const headers = {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+        };
+        const queryParameters: QueryParameters = {
+            updatedFields: { value: params.parameter.updatedFields, explode: true },
+            "id.type": { value: params.parameter["id.type"], explode: false }
+        };
+        return this.apiClient.request({
+            httpMethod: "PUT",
+            url,
+            headers,
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
+        }, option);
+    }
+    /**
+     * Delete deletes a cluster
+     * operationId: ClusterService_Delete
+     * Request URI: /api/v1/clusters/{id.value}
+     */
+    public async ClusterService_Delete(params: Params$ClusterService_Delete, option?: RequestOption): Promise<Response$ClusterService_Delete$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            name: { value: params.parameter.name, explode: false }
+            server: { value: params.parameter.server, explode: false },
+            name: { value: params.parameter.name, explode: false },
+            "id.type": { value: params.parameter["id.type"], explode: false }
         };
         return this.apiClient.request({
             httpMethod: "DELETE",
@@ -3321,11 +3982,11 @@ export class Client<RequestOption> {
     }
     /**
      * InvalidateCache invalidates cluster cache
-     * operationId: InvalidateCache
-     * Request URI: /api/v1/clusters/{server}/invalidate-cache
+     * operationId: ClusterService_InvalidateCache
+     * Request URI: /api/v1/clusters/{id.value}/invalidate-cache
      */
-    public async InvalidateCache(params: Params$InvalidateCache, option?: RequestOption): Promise<Response$InvalidateCache$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}/invalidate-cache`;
+    public async ClusterService_InvalidateCache(params: Params$ClusterService_InvalidateCache, option?: RequestOption): Promise<Response$ClusterService_InvalidateCache$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}/invalidate-cache`;
         const headers = {
             Accept: "application/json"
         };
@@ -3337,11 +3998,11 @@ export class Client<RequestOption> {
     }
     /**
      * RotateAuth rotates the bearer token used for a cluster
-     * operationId: RotateAuth
-     * Request URI: /api/v1/clusters/{server}/rotate-auth
+     * operationId: ClusterService_RotateAuth
+     * Request URI: /api/v1/clusters/{id.value}/rotate-auth
      */
-    public async RotateAuth(params: Params$RotateAuth, option?: RequestOption): Promise<Response$RotateAuth$Status$200["application/json"]> {
-        const url = this.baseUrl + `/api/v1/clusters/${params.parameter.server}/rotate-auth`;
+    public async ClusterService_RotateAuth(params: Params$ClusterService_RotateAuth, option?: RequestOption): Promise<Response$ClusterService_RotateAuth$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/clusters/${params.parameter["id.value"]}/rotate-auth`;
         const headers = {
             Accept: "application/json"
         };
@@ -3353,10 +4014,10 @@ export class Client<RequestOption> {
     }
     /**
      * List all available repository certificates
-     * operationId: ListMixin4
+     * operationId: GPGKeyService_List
      * Request URI: /api/v1/gpgkeys
      */
-    public async ListMixin4(params: Params$ListMixin4, option?: RequestOption): Promise<Response$ListMixin4$Status$200["application/json"]> {
+    public async GPGKeyService_List(params: Params$GPGKeyService_List, option?: RequestOption): Promise<Response$GPGKeyService_List$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/gpgkeys`;
         const headers = {
             Accept: "application/json"
@@ -3373,28 +4034,32 @@ export class Client<RequestOption> {
     }
     /**
      * Create one or more GPG public keys in the server's configuration
-     * operationId: CreateMixin4
+     * operationId: GPGKeyService_Create
      * Request URI: /api/v1/gpgkeys
      */
-    public async CreateMixin4(params: Params$CreateMixin4, option?: RequestOption): Promise<Response$CreateMixin4$Status$200["application/json"]> {
+    public async GPGKeyService_Create(params: Params$GPGKeyService_Create, option?: RequestOption): Promise<Response$GPGKeyService_Create$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/gpgkeys`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * Delete specified GPG public key from the server's configuration
-     * operationId: DeleteMixin4
+     * operationId: GPGKeyService_Delete
      * Request URI: /api/v1/gpgkeys
      */
-    public async DeleteMixin4(params: Params$DeleteMixin4, option?: RequestOption): Promise<Response$DeleteMixin4$Status$200["application/json"]> {
+    public async GPGKeyService_Delete(params: Params$GPGKeyService_Delete, option?: RequestOption): Promise<Response$GPGKeyService_Delete$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/gpgkeys`;
         const headers = {
             Accept: "application/json"
@@ -3411,10 +4076,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get information about specified GPG public key from the server
-     * operationId: GetMixin4
+     * operationId: GPGKeyService_Get
      * Request URI: /api/v1/gpgkeys/{keyID}
      */
-    public async GetMixin4(params: Params$GetMixin4, option?: RequestOption): Promise<Response$GetMixin4$Status$200["application/json"]> {
+    public async GPGKeyService_Get(params: Params$GPGKeyService_Get, option?: RequestOption): Promise<Response$GPGKeyService_Get$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/gpgkeys/${params.parameter.keyID}`;
         const headers = {
             Accept: "application/json"
@@ -3427,10 +4092,10 @@ export class Client<RequestOption> {
     }
     /**
      * List returns list of projects
-     * operationId: ListMixin5
+     * operationId: ProjectService_List
      * Request URI: /api/v1/projects
      */
-    public async ListMixin5(params: Params$ListMixin5, option?: RequestOption): Promise<Response$ListMixin5$Status$200["application/json"]> {
+    public async ProjectService_List(params: Params$ProjectService_List, option?: RequestOption): Promise<Response$ProjectService_List$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects`;
         const headers = {
             Accept: "application/json"
@@ -3447,10 +4112,10 @@ export class Client<RequestOption> {
     }
     /**
      * Create a new project
-     * operationId: CreateMixin5
+     * operationId: ProjectService_Create
      * Request URI: /api/v1/projects
      */
-    public async CreateMixin5(params: Params$CreateMixin5, option?: RequestOption): Promise<Response$CreateMixin5$Status$200["application/json"]> {
+    public async ProjectService_Create(params: Params$ProjectService_Create, option?: RequestOption): Promise<Response$ProjectService_Create$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects`;
         const headers = {
             "Content-Type": "application/json",
@@ -3465,10 +4130,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get returns a project by name
-     * operationId: GetMixin5
+     * operationId: ProjectService_Get
      * Request URI: /api/v1/projects/{name}
      */
-    public async GetMixin5(params: Params$GetMixin5, option?: RequestOption): Promise<Response$GetMixin5$Status$200["application/json"]> {
+    public async ProjectService_Get(params: Params$ProjectService_Get, option?: RequestOption): Promise<Response$ProjectService_Get$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}`;
         const headers = {
             Accept: "application/json"
@@ -3481,10 +4146,10 @@ export class Client<RequestOption> {
     }
     /**
      * Delete deletes a project
-     * operationId: DeleteMixin5
+     * operationId: ProjectService_Delete
      * Request URI: /api/v1/projects/{name}
      */
-    public async DeleteMixin5(params: Params$DeleteMixin5, option?: RequestOption): Promise<Response$DeleteMixin5$Status$200["application/json"]> {
+    public async ProjectService_Delete(params: Params$ProjectService_Delete, option?: RequestOption): Promise<Response$ProjectService_Delete$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}`;
         const headers = {
             Accept: "application/json"
@@ -3496,11 +4161,27 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
+     * GetDetailedProject returns a project that include project, global project and scoped resources by name
+     * operationId: ProjectService_GetDetailedProject
+     * Request URI: /api/v1/projects/{name}/detailed
+     */
+    public async ProjectService_GetDetailedProject(params: Params$ProjectService_GetDetailedProject, option?: RequestOption): Promise<Response$ProjectService_GetDetailedProject$Status$200["application/json"]> {
+        const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/detailed`;
+        const headers = {
+            Accept: "application/json"
+        };
+        return this.apiClient.request({
+            httpMethod: "GET",
+            url,
+            headers
+        }, option);
+    }
+    /**
      * ListEvents returns a list of project events
-     * operationId: ListEvents
+     * operationId: ProjectService_ListEvents
      * Request URI: /api/v1/projects/{name}/events
      */
-    public async ListEvents(params: Params$ListEvents, option?: RequestOption): Promise<Response$ListEvents$Status$200["application/json"]> {
+    public async ProjectService_ListEvents(params: Params$ProjectService_ListEvents, option?: RequestOption): Promise<Response$ProjectService_ListEvents$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/events`;
         const headers = {
             Accept: "application/json"
@@ -3513,10 +4194,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get returns a virtual project by name
-     * operationId: GetGlobalProjects
+     * operationId: ProjectService_GetGlobalProjects
      * Request URI: /api/v1/projects/{name}/globalprojects
      */
-    public async GetGlobalProjects(params: Params$GetGlobalProjects, option?: RequestOption): Promise<Response$GetGlobalProjects$Status$200["application/json"]> {
+    public async ProjectService_GetGlobalProjects(params: Params$ProjectService_GetGlobalProjects, option?: RequestOption): Promise<Response$ProjectService_GetGlobalProjects$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/globalprojects`;
         const headers = {
             Accept: "application/json"
@@ -3529,10 +4210,10 @@ export class Client<RequestOption> {
     }
     /**
      * GetSchedulesState returns true if there are any active sync syncWindows
-     * operationId: GetSyncWindowsState
+     * operationId: ProjectService_GetSyncWindowsState
      * Request URI: /api/v1/projects/{name}/syncwindows
      */
-    public async GetSyncWindowsState(params: Params$GetSyncWindowsState, option?: RequestOption): Promise<Response$GetSyncWindowsState$Status$200["application/json"]> {
+    public async ProjectService_GetSyncWindowsState(params: Params$ProjectService_GetSyncWindowsState, option?: RequestOption): Promise<Response$ProjectService_GetSyncWindowsState$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.name}/syncwindows`;
         const headers = {
             Accept: "application/json"
@@ -3545,10 +4226,10 @@ export class Client<RequestOption> {
     }
     /**
      * Update updates a project
-     * operationId: UpdateMixin5
+     * operationId: ProjectService_Update
      * Request URI: /api/v1/projects/{project.metadata.name}
      */
-    public async UpdateMixin5(params: Params$UpdateMixin5, option?: RequestOption): Promise<Response$UpdateMixin5$Status$200["application/json"]> {
+    public async ProjectService_Update(params: Params$ProjectService_Update, option?: RequestOption): Promise<Response$ProjectService_Update$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter["project.metadata.name"]}`;
         const headers = {
             "Content-Type": "application/json",
@@ -3563,10 +4244,10 @@ export class Client<RequestOption> {
     }
     /**
      * Create a new project token
-     * operationId: CreateTokenMixin5
+     * operationId: ProjectService_CreateToken
      * Request URI: /api/v1/projects/{project}/roles/{role}/token
      */
-    public async CreateTokenMixin5(params: Params$CreateTokenMixin5, option?: RequestOption): Promise<Response$CreateTokenMixin5$Status$200["application/json"]> {
+    public async ProjectService_CreateToken(params: Params$ProjectService_CreateToken, option?: RequestOption): Promise<Response$ProjectService_CreateToken$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.project}/roles/${params.parameter.role}/token`;
         const headers = {
             "Content-Type": "application/json",
@@ -3581,10 +4262,10 @@ export class Client<RequestOption> {
     }
     /**
      * Delete a new project token
-     * operationId: DeleteTokenMixin5
+     * operationId: ProjectService_DeleteToken
      * Request URI: /api/v1/projects/{project}/roles/{role}/token/{iat}
      */
-    public async DeleteTokenMixin5(params: Params$DeleteTokenMixin5, option?: RequestOption): Promise<Response$DeleteTokenMixin5$Status$200["application/json"]> {
+    public async ProjectService_DeleteToken(params: Params$ProjectService_DeleteToken, option?: RequestOption): Promise<Response$ProjectService_DeleteToken$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/projects/${params.parameter.project}/roles/${params.parameter.role}/token/${params.parameter.iat}`;
         const headers = {
             Accept: "application/json"
@@ -3601,10 +4282,10 @@ export class Client<RequestOption> {
     }
     /**
      * ListRepositoryCredentials gets a list of all configured repository credential sets
-     * operationId: ListRepositoryCredentials
+     * operationId: RepoCredsService_ListRepositoryCredentials
      * Request URI: /api/v1/repocreds
      */
-    public async ListRepositoryCredentials(params: Params$ListRepositoryCredentials, option?: RequestOption): Promise<Response$ListRepositoryCredentials$Status$200["application/json"]> {
+    public async RepoCredsService_ListRepositoryCredentials(params: Params$RepoCredsService_ListRepositoryCredentials, option?: RequestOption): Promise<Response$RepoCredsService_ListRepositoryCredentials$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repocreds`;
         const headers = {
             Accept: "application/json"
@@ -3621,28 +4302,32 @@ export class Client<RequestOption> {
     }
     /**
      * CreateRepositoryCredentials creates a new repository credential set
-     * operationId: CreateRepositoryCredentials
+     * operationId: RepoCredsService_CreateRepositoryCredentials
      * Request URI: /api/v1/repocreds
      */
-    public async CreateRepositoryCredentials(params: Params$CreateRepositoryCredentials, option?: RequestOption): Promise<Response$CreateRepositoryCredentials$Status$200["application/json"]> {
+    public async RepoCredsService_CreateRepositoryCredentials(params: Params$RepoCredsService_CreateRepositoryCredentials, option?: RequestOption): Promise<Response$RepoCredsService_CreateRepositoryCredentials$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repocreds`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * UpdateRepositoryCredentials updates a repository credential set
-     * operationId: UpdateRepositoryCredentials
+     * operationId: RepoCredsService_UpdateRepositoryCredentials
      * Request URI: /api/v1/repocreds/{creds.url}
      */
-    public async UpdateRepositoryCredentials(params: Params$UpdateRepositoryCredentials, option?: RequestOption): Promise<Response$UpdateRepositoryCredentials$Status$200["application/json"]> {
+    public async RepoCredsService_UpdateRepositoryCredentials(params: Params$RepoCredsService_UpdateRepositoryCredentials, option?: RequestOption): Promise<Response$RepoCredsService_UpdateRepositoryCredentials$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repocreds/${params.parameter["creds.url"]}`;
         const headers = {
             "Content-Type": "application/json",
@@ -3657,10 +4342,10 @@ export class Client<RequestOption> {
     }
     /**
      * DeleteRepositoryCredentials deletes a repository credential set from the configuration
-     * operationId: DeleteRepositoryCredentials
+     * operationId: RepoCredsService_DeleteRepositoryCredentials
      * Request URI: /api/v1/repocreds/{url}
      */
-    public async DeleteRepositoryCredentials(params: Params$DeleteRepositoryCredentials, option?: RequestOption): Promise<Response$DeleteRepositoryCredentials$Status$200["application/json"]> {
+    public async RepoCredsService_DeleteRepositoryCredentials(params: Params$RepoCredsService_DeleteRepositoryCredentials, option?: RequestOption): Promise<Response$RepoCredsService_DeleteRepositoryCredentials$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repocreds/${params.parameter.url}`;
         const headers = {
             Accept: "application/json"
@@ -3673,10 +4358,10 @@ export class Client<RequestOption> {
     }
     /**
      * ListRepositories gets a list of all configured repositories
-     * operationId: ListRepositories
+     * operationId: RepositoryService_ListRepositories
      * Request URI: /api/v1/repositories
      */
-    public async ListRepositories(params: Params$ListRepositories, option?: RequestOption): Promise<Response$ListRepositories$Status$200["application/json"]> {
+    public async RepositoryService_ListRepositories(params: Params$RepositoryService_ListRepositories, option?: RequestOption): Promise<Response$RepositoryService_ListRepositories$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories`;
         const headers = {
             Accept: "application/json"
@@ -3694,28 +4379,33 @@ export class Client<RequestOption> {
     }
     /**
      * CreateRepository creates a new repository configuration
-     * operationId: CreateRepository
+     * operationId: RepositoryService_CreateRepository
      * Request URI: /api/v1/repositories
      */
-    public async CreateRepository(params: Params$CreateRepository, option?: RequestOption): Promise<Response$CreateRepository$Status$200["application/json"]> {
+    public async RepositoryService_CreateRepository(params: Params$RepositoryService_CreateRepository, option?: RequestOption): Promise<Response$RepositoryService_CreateRepository$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            upsert: { value: params.parameter.upsert, explode: false },
+            credsOnly: { value: params.parameter.credsOnly, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * UpdateRepository updates a repository configuration
-     * operationId: UpdateRepository
+     * operationId: RepositoryService_UpdateRepository
      * Request URI: /api/v1/repositories/{repo.repo}
      */
-    public async UpdateRepository(params: Params$UpdateRepository, option?: RequestOption): Promise<Response$UpdateRepository$Status$200["application/json"]> {
+    public async RepositoryService_UpdateRepository(params: Params$RepositoryService_UpdateRepository, option?: RequestOption): Promise<Response$RepositoryService_UpdateRepository$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter["repo.repo"]}`;
         const headers = {
             "Content-Type": "application/json",
@@ -3730,10 +4420,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get returns a repository or its credentials
-     * operationId: GetMixin7
+     * operationId: RepositoryService_Get
      * Request URI: /api/v1/repositories/{repo}
      */
-    public async GetMixin7(params: Params$GetMixin7, option?: RequestOption): Promise<Response$GetMixin7$Status$200["application/json"]> {
+    public async RepositoryService_Get(params: Params$RepositoryService_Get, option?: RequestOption): Promise<Response$RepositoryService_Get$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter.repo}`;
         const headers = {
             Accept: "application/json"
@@ -3750,10 +4440,10 @@ export class Client<RequestOption> {
     }
     /**
      * DeleteRepository deletes a repository from the configuration
-     * operationId: DeleteRepository
+     * operationId: RepositoryService_DeleteRepository
      * Request URI: /api/v1/repositories/{repo}
      */
-    public async DeleteRepository(params: Params$DeleteRepository, option?: RequestOption): Promise<Response$DeleteRepository$Status$200["application/json"]> {
+    public async RepositoryService_DeleteRepository(params: Params$RepositoryService_DeleteRepository, option?: RequestOption): Promise<Response$RepositoryService_DeleteRepository$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter.repo}`;
         const headers = {
             Accept: "application/json"
@@ -3769,17 +4459,19 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
-     * ListApps returns list of apps in the repe
-     * operationId: ListApps
+     * ListApps returns list of apps in the repo
+     * operationId: RepositoryService_ListApps
      * Request URI: /api/v1/repositories/{repo}/apps
      */
-    public async ListApps(params: Params$ListApps, option?: RequestOption): Promise<Response$ListApps$Status$200["application/json"]> {
+    public async RepositoryService_ListApps(params: Params$RepositoryService_ListApps, option?: RequestOption): Promise<Response$RepositoryService_ListApps$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter.repo}/apps`;
         const headers = {
             Accept: "application/json"
         };
         const queryParameters: QueryParameters = {
-            revision: { value: params.parameter.revision, explode: false }
+            revision: { value: params.parameter.revision, explode: false },
+            appName: { value: params.parameter.appName, explode: false },
+            appProject: { value: params.parameter.appProject, explode: false }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3790,10 +4482,10 @@ export class Client<RequestOption> {
     }
     /**
      * GetHelmCharts returns list of helm charts in the specified repository
-     * operationId: GetHelmCharts
+     * operationId: RepositoryService_GetHelmCharts
      * Request URI: /api/v1/repositories/{repo}/helmcharts
      */
-    public async GetHelmCharts(params: Params$GetHelmCharts, option?: RequestOption): Promise<Response$GetHelmCharts$Status$200["application/json"]> {
+    public async RepositoryService_GetHelmCharts(params: Params$RepositoryService_GetHelmCharts, option?: RequestOption): Promise<Response$RepositoryService_GetHelmCharts$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter.repo}/helmcharts`;
         const headers = {
             Accept: "application/json"
@@ -3809,10 +4501,10 @@ export class Client<RequestOption> {
         }, option);
     }
     /**
-     * operationId: ListRefs
+     * operationId: RepositoryService_ListRefs
      * Request URI: /api/v1/repositories/{repo}/refs
      */
-    public async ListRefs(params: Params$ListRefs, option?: RequestOption): Promise<Response$ListRefs$Status$200["application/json"]> {
+    public async RepositoryService_ListRefs(params: Params$RepositoryService_ListRefs, option?: RequestOption): Promise<Response$RepositoryService_ListRefs$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter.repo}/refs`;
         const headers = {
             Accept: "application/json"
@@ -3829,28 +4521,46 @@ export class Client<RequestOption> {
     }
     /**
      * ValidateAccess validates access to a repository with given parameters
-     * operationId: ValidateAccess
+     * operationId: RepositoryService_ValidateAccess
      * Request URI: /api/v1/repositories/{repo}/validate
      */
-    public async ValidateAccess(params: Params$ValidateAccess, option?: RequestOption): Promise<Response$ValidateAccess$Status$200["application/json"]> {
+    public async RepositoryService_ValidateAccess(params: Params$RepositoryService_ValidateAccess, option?: RequestOption): Promise<Response$RepositoryService_ValidateAccess$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter.repo}/validate`;
         const headers = {
             "Content-Type": "application/json",
             Accept: "application/json"
         };
+        const queryParameters: QueryParameters = {
+            username: { value: params.parameter.username, explode: false },
+            password: { value: params.parameter.password, explode: false },
+            sshPrivateKey: { value: params.parameter.sshPrivateKey, explode: false },
+            insecure: { value: params.parameter.insecure, explode: false },
+            tlsClientCertData: { value: params.parameter.tlsClientCertData, explode: false },
+            tlsClientCertKey: { value: params.parameter.tlsClientCertKey, explode: false },
+            type: { value: params.parameter.type, explode: false },
+            name: { value: params.parameter.name, explode: false },
+            enableOci: { value: params.parameter.enableOci, explode: false },
+            githubAppPrivateKey: { value: params.parameter.githubAppPrivateKey, explode: false },
+            githubAppID: { value: params.parameter.githubAppID, explode: false },
+            githubAppInstallationID: { value: params.parameter.githubAppInstallationID, explode: false },
+            githubAppEnterpriseBaseUrl: { value: params.parameter.githubAppEnterpriseBaseUrl, explode: false },
+            proxy: { value: params.parameter.proxy, explode: false },
+            project: { value: params.parameter.project, explode: false }
+        };
         return this.apiClient.request({
             httpMethod: "POST",
             url,
             headers,
-            requestBody: params.requestBody
+            requestBody: params.requestBody,
+            queryParameters: queryParameters
         }, option);
     }
     /**
      * GetAppDetails returns application details by given path
-     * operationId: GetAppDetails
+     * operationId: RepositoryService_GetAppDetails
      * Request URI: /api/v1/repositories/{source.repoURL}/appdetails
      */
-    public async GetAppDetails(params: Params$GetAppDetails, option?: RequestOption): Promise<Response$GetAppDetails$Status$200["application/json"]> {
+    public async RepositoryService_GetAppDetails(params: Params$RepositoryService_GetAppDetails, option?: RequestOption): Promise<Response$RepositoryService_GetAppDetails$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/repositories/${params.parameter["source.repoURL"]}/appdetails`;
         const headers = {
             "Content-Type": "application/json",
@@ -3865,10 +4575,10 @@ export class Client<RequestOption> {
     }
     /**
      * Create a new JWT for authentication and set a cookie if using HTTP
-     * operationId: CreateMixin8
+     * operationId: SessionService_Create
      * Request URI: /api/v1/session
      */
-    public async CreateMixin8(params: Params$CreateMixin8, option?: RequestOption): Promise<Response$CreateMixin8$Status$200["application/json"]> {
+    public async SessionService_Create(params: Params$SessionService_Create, option?: RequestOption): Promise<Response$SessionService_Create$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/session`;
         const headers = {
             "Content-Type": "application/json",
@@ -3883,10 +4593,10 @@ export class Client<RequestOption> {
     }
     /**
      * Delete an existing JWT cookie if using HTTP
-     * operationId: DeleteMixin8
+     * operationId: SessionService_Delete
      * Request URI: /api/v1/session
      */
-    public async DeleteMixin8(option?: RequestOption): Promise<Response$DeleteMixin8$Status$200["application/json"]> {
+    public async SessionService_Delete(option?: RequestOption): Promise<Response$SessionService_Delete$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/session`;
         const headers = {
             Accept: "application/json"
@@ -3899,10 +4609,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get the current user's info
-     * operationId: GetUserInfo
+     * operationId: SessionService_GetUserInfo
      * Request URI: /api/v1/session/userinfo
      */
-    public async GetUserInfo(option?: RequestOption): Promise<Response$GetUserInfo$Status$200["application/json"]> {
+    public async SessionService_GetUserInfo(option?: RequestOption): Promise<Response$SessionService_GetUserInfo$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/session/userinfo`;
         const headers = {
             Accept: "application/json"
@@ -3915,10 +4625,10 @@ export class Client<RequestOption> {
     }
     /**
      * Get returns Argo CD settings
-     * operationId: GetMixin10
+     * operationId: SettingsService_Get
      * Request URI: /api/v1/settings
      */
-    public async GetMixin10(option?: RequestOption): Promise<Response$GetMixin10$Status$200["application/json"]> {
+    public async SettingsService_Get(option?: RequestOption): Promise<Response$SettingsService_Get$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/settings`;
         const headers = {
             Accept: "application/json"
@@ -3931,10 +4641,10 @@ export class Client<RequestOption> {
     }
     /**
      * Watch returns stream of application change events
-     * operationId: Watch
+     * operationId: ApplicationService_Watch
      * Request URI: /api/v1/stream/applications
      */
-    public async Watch(params: Params$Watch, option?: RequestOption): Promise<Response$Watch$Status$200["application/json"]> {
+    public async ApplicationService_Watch(params: Params$ApplicationService_Watch, option?: RequestOption): Promise<Response$ApplicationService_Watch$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/stream/applications`;
         const headers = {
             Accept: "application/json"
@@ -3942,9 +4652,11 @@ export class Client<RequestOption> {
         const queryParameters: QueryParameters = {
             name: { value: params.parameter.name, explode: false },
             refresh: { value: params.parameter.refresh, explode: false },
-            project: { value: params.parameter.project, explode: true },
+            projects: { value: params.parameter.projects, explode: true },
             resourceVersion: { value: params.parameter.resourceVersion, explode: false },
-            selector: { value: params.parameter.selector, explode: false }
+            selector: { value: params.parameter.selector, explode: false },
+            repo: { value: params.parameter.repo, explode: false },
+            project: { value: params.parameter.project, explode: true }
         };
         return this.apiClient.request({
             httpMethod: "GET",
@@ -3955,10 +4667,10 @@ export class Client<RequestOption> {
     }
     /**
      * Watch returns stream of application resource tree
-     * operationId: WatchResourceTree
+     * operationId: ApplicationService_WatchResourceTree
      * Request URI: /api/v1/stream/applications/{applicationName}/resource-tree
      */
-    public async WatchResourceTree(params: Params$WatchResourceTree, option?: RequestOption): Promise<Response$WatchResourceTree$Status$200["application/json"]> {
+    public async ApplicationService_WatchResourceTree(params: Params$ApplicationService_WatchResourceTree, option?: RequestOption): Promise<Response$ApplicationService_WatchResourceTree$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/v1/stream/applications/${params.parameter.applicationName}/resource-tree`;
         const headers = {
             Accept: "application/json"
@@ -3979,10 +4691,10 @@ export class Client<RequestOption> {
     }
     /**
      * Version returns version information of the API server
-     * operationId: Version
+     * operationId: VersionService_Version
      * Request URI: /api/version
      */
-    public async Version(option?: RequestOption): Promise<Response$Version$Status$200["application/json"]> {
+    public async VersionService_Version(option?: RequestOption): Promise<Response$VersionService_Version$Status$200["application/json"]> {
         const url = this.baseUrl + `/api/version`;
         const headers = {
             Accept: "application/json"
