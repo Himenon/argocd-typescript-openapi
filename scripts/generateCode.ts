@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import rimraf from "rimraf";
+import { rimraf } from "rimraf";
 import { outputDir, versions, sourceOutputDir } from "./config";
 
 import { CodeGenerator, Option } from "@himenon/openapi-typescript-code-generator";
-import * as Templates from "@himenon/openapi-typescript-code-generator/templates";
+import * as Templates from "@himenon/openapi-typescript-code-generator/dist/templates";
 
 const task = async (filename: string, outputFilename: string): Promise<void> => {
   const option: Option = {
