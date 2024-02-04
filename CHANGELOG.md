@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<a name="1.2.2"></a>
+## 1.2.2 (2024-02-04)
+
+
+### Bug Fixes
+
+* github actions ([#6](https://github.com/Himenon/argocd-typescript-openapi/issues/6)) ([ade3699](https://github.com/Himenon/argocd-typescript-openapi/commit/ade3699))
+
+
+
+
+
 <a name="1.2.1"></a>
 
 ## 1.2.1 (2022-03-31)
